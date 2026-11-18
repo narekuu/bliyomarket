@@ -259,14 +259,30 @@ async function loadSharedData(){
   for(const x of [pr,ca,ba,se])if(x.error)throw x.error;
   const admin=(await supabaseClient.auth.getSession()).data.session?.user?.id===ADMIN_UID;
   if(!pr.data.length&&admin){
-   const seed=products.map(productToRow);
+   const seed=[];
+   for(const p of products){
+    if(!p.image&&p.imageKey){
+     const blob=await readMedia(p.imageKey);
+     if(blob)p.image=await uploadSharedMedia(blob,'products');
+    }
+    seed.push(productToRow(p));
+   }
    if(seed.length){const w=await supabaseClient.from('products').upsert(seed);if(w.error)throw w.error;}
   }else if(pr.data.length)products=pr.data.map(rowToProduct);
   if(!ca.data.length&&admin){
    if(categories.length){const w=await supabaseClient.from('categories').insert(categories.map(name=>({name})));if(w.error)throw w.error;}
   }else if(ca.data.length)categories=ca.data.map(x=>x.name);
   if(!ba.data.length&&admin&&banners.length){
-   const seed=banners.filter(b=>typeof b==='string'||b.image).map((b,i)=>({image:typeof b==='string'?b:b.image,link:typeof b==='string'?'':(b.link||''),position:i}));
+   const seed=[];
+   for(let i=0;i<banners.length;i++){
+    const b=banners[i];
+    let image=typeof b==='string'?b:(b?.image||'');
+    if(!image&&b?.key){
+     const blob=await readMedia(b.key);
+     if(blob){image=await uploadSharedMedia(blob,'banners');b.image=image;}
+    }
+    if(image)seed.push({image,link:typeof b==='string'?'':(b.link||''),position:i});
+   }
    if(seed.length){const w=await supabaseClient.from('banners').insert(seed);if(w.error)throw w.error;}
   }else if(ba.data.length)banners=ba.data.map(b=>({id:b.id,image:b.image,link:b.link}));
   if(se.data)settings={store:se.data.store,phone:se.data.phone};
