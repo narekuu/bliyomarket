@@ -245,6 +245,69 @@ function persist(){
 put('bl_products',products);put('bl_categories',categories);put('bl_banners',banners);put('bl_orders',orders);put('bl_settings',settings);
 }
 
+/* DATA TOKO BERSAMA - SUPABASE */
+function productToRow(p){return {id:Number(p.id),name:p.name,category:p.category||'',price:Number(p.price)||0,min_qty:Number(p.minQty)||1,max_qty:Number(p.maxQty)||99,rating:Number(p.rating)||0,sold:Number(p.sold)||0,image:p.image||'',description:p.description||'',updated_at:new Date().toISOString()}}
+function rowToProduct(p){return {id:Number(p.id),name:p.name,category:p.category||'',price:Number(p.price)||0,minQty:Number(p.min_qty)||1,maxQty:Number(p.max_qty)||99,rating:Number(p.rating)||0,sold:Number(p.sold)||0,image:p.image||'',description:p.description||''}}
+async function loadSharedData(){
+ try{
+  const [pr,ca,ba,se]=await Promise.all([
+   supabaseClient.from('products').select('*').order('id'),
+   supabaseClient.from('categories').select('name').order('id'),
+   supabaseClient.from('banners').select('*').order('position').order('id'),
+   supabaseClient.from('store_settings').select('*').eq('id',1).maybeSingle()
+  ]);
+  for(const x of [pr,ca,ba,se])if(x.error)throw x.error;
+  const admin=(await supabaseClient.auth.getSession()).data.session?.user?.id===ADMIN_UID;
+  if(!pr.data.length&&admin){
+   const seed=products.filter(p=>!p.imageKey).map(productToRow);
+   if(seed.length){const w=await supabaseClient.from('products').upsert(seed);if(w.error)throw w.error;}
+  }else if(pr.data.length)products=pr.data.map(rowToProduct);
+  if(!ca.data.length&&admin){
+   if(categories.length){const w=await supabaseClient.from('categories').insert(categories.map(name=>({name})));if(w.error)throw w.error;}
+  }else if(ca.data.length)categories=ca.data.map(x=>x.name);
+  if(!ba.data.length&&admin&&banners.length){
+   const seed=banners.filter(b=>typeof b==='string'||b.image).map((b,i)=>({image:typeof b==='string'?b:b.image,link:typeof b==='string'?'':(b.link||''),position:i}));
+   if(seed.length){const w=await supabaseClient.from('banners').insert(seed);if(w.error)throw w.error;}
+  }else if(ba.data.length)banners=ba.data.map(b=>({id:b.id,image:b.image,link:b.link}));
+  if(se.data)settings={store:se.data.store,phone:se.data.phone};
+  else if(admin){const w=await supabaseClient.from('store_settings').upsert({id:1,store:settings.store||'BLIYO MARKET',phone:settings.phone||''});if(w.error)throw w.error;}
+  persist();
+ }catch(e){console.error('Supabase shared data:',e);toast('Data online belum termuat: '+(e.message||'periksa koneksi'))}
+}
+async function saveProductsRemote(){
+ const rows=products.filter(p=>!p.imageKey).map(productToRow);
+ const localOnly=products.some(p=>p.imageKey);
+ if(localOnly)toast('Foto upload perangkat belum tersinkron; gunakan URL gambar untuk dibagikan.');
+ const {data,error}=await supabaseClient.from('products').select('id');
+ if(error)throw error;
+ const ids=new Set(rows.map(p=>p.id));
+ const removed=(data||[]).filter(p=>!ids.has(Number(p.id))).map(p=>p.id);
+ if(removed.length){const d=await supabaseClient.from('products').delete().in('id',removed);if(d.error)throw d.error;}
+ if(rows.length){const u=await supabaseClient.from('products').upsert(rows);if(u.error)throw u.error;}
+}
+async function saveCategoriesRemote(){
+ const d=await supabaseClient.from('categories').delete().neq('id',0);if(d.error)throw d.error;
+ if(categories.length){const i=await supabaseClient.from('categories').insert(categories.map(name=>({name})));if(i.error)throw i.error;}
+}
+async function saveBannersRemote(){
+ const d=await supabaseClient.from('banners').delete().neq('id',0);if(d.error)throw d.error;
+ const rows=banners.filter(b=>typeof b==='string'||b.image).map((b,i)=>({image:typeof b==='string'?b:b.image,link:typeof b==='string'?'':(b.link||''),position:i}));
+ if(rows.length){const i=await supabaseClient.from('banners').insert(rows);if(i.error)throw i.error;}
+ if(banners.some(b=>b?.key))toast('Banner upload perangkat belum tersinkron; gunakan URL gambar dulu.');
+}
+async function saveSettingsRemote(){
+ const {error}=await supabaseClient.from('store_settings').upsert({id:1,store:settings.store,phone:settings.phone,updated_at:new Date().toISOString()});
+ if(error)throw error;
+}
+function startSharedRealtime(){
+ supabaseClient.channel('bliyo-shared-store')
+ .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>loadSharedData())
+ .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadSharedData())
+ .on('postgres_changes',{event:'*',schema:'public',table:'banners'},()=>loadSharedData())
+ .on('postgres_changes',{event:'*',schema:'public',table:'store_settings'},()=>loadSharedData())
+ .subscribe();
+}
+
 /* DATABASE MEDIA - INDEXEDDB */
 function openMediaDB(){
 return new Promise((resolve,reject)=>{
@@ -948,7 +1011,9 @@ imageKey=newKey;image='';
 let data={name,category:$('#pCategory').value,price,minQty:min,maxQty:max,rating:Math.max(0,Math.min(5,Number($('#pRating').value)||5)),description:$('#pDesc').value.trim(),image,imageKey};
 if(old){Object.assign(old,data);toast('Produk berhasil diperbarui.')}
 else{products.unshift({id:Date.now(),...data,sold:0});toast('Produk berhasil ditambahkan.')}
-persist();render();
+persist();
+try{await saveProductsRemote()}catch(e){toast('Gagal menyimpan produk online: '+e.message);return}
+render();
 }
 function editProduct(id){
 let p=products.find(x=>x.id===id);if(!p)return;
@@ -971,17 +1036,21 @@ confirmDialog('Hapus produk?','Produk ini akan dihapus dari daftar toko.',async(
 let p=products.find(x=>x.id===id);
 products=products.filter(p=>p.id!==id);
 if(p?.imageKey)await deleteMedia(p.imageKey);
-persist();render();toast('Produk berhasil dihapus.');
+persist();
+try{await saveProductsRemote()}catch(e){toast('Gagal menghapus produk online: '+e.message);return}
+render();toast('Produk berhasil dihapus.');
 });
 }
 function addCategory(){
 let c=$('#catName').value.trim();if(!c)return toast('Masukkan nama kategori.');
 if(categories.includes(c))return toast('Kategori sudah ada.');
-categories.push(c);persist();render();toast('Kategori ditambahkan.');
+categories.push(c);persist();
+saveCategoriesRemote().then(()=>{render();toast('Kategori ditambahkan.')}).catch(e=>toast('Gagal menyimpan kategori online: '+e.message));
 }
 function deleteCategory(c){
 confirmDialog('Hapus kategori?','Kategori '+c+' akan dihapus.',()=>{
-categories=categories.filter(x=>x!==c);persist();render();toast('Kategori dihapus.');
+categories=categories.filter(x=>x!==c);persist();
+saveCategoriesRemote().then(()=>{render();toast('Kategori dihapus.')}).catch(e=>toast('Gagal menghapus kategori online: '+e.message));
 });
 }
 async function addBanner(){
@@ -992,7 +1061,8 @@ if(file){
 let key=await uploadMedia(file);if(!key)return;
 item.key=key;await loadMedia(key);
 }else item.image=url;
-banners.push(item);persist();render();toast('Banner berhasil ditambahkan.');
+banners.push(item);persist();
+saveBannersRemote().then(()=>{render();toast('Banner berhasil ditambahkan.')}).catch(e=>toast('Gagal menyimpan banner online: '+e.message));
 }
 function deleteBanner(i){
 confirmDialog('Hapus banner?','Banner ini tidak akan ditampilkan lagi.',async()=>{
@@ -1000,7 +1070,8 @@ let b=banners[i];if(b&&typeof b==='object'&&b.key){
 await deleteMedia(b.key);
 if(mediaCache[b.key]){URL.revokeObjectURL(mediaCache[b.key]);delete mediaCache[b.key]}
 }
-banners.splice(i,1);bannerIndex=0;persist();render();toast('Banner dihapus.');
+banners.splice(i,1);bannerIndex=0;persist();
+saveBannersRemote().then(()=>{render();toast('Banner dihapus.')}).catch(e=>toast('Gagal menghapus banner online: '+e.message));
 });
 }
 function setStatus(id,status){let o=orders.find(x=>x.id===id);if(o)o.status=status;persist();render();toast('Status pesanan diperbarui.')}
@@ -1008,7 +1079,8 @@ function saveSettings(){
 let phone=$('#storePhone').value.trim().replace(/\D/g,'');
 if(!phone)return toast('Nomor WhatsApp wajib diisi.');
 settings.store=$('#storeName').value.trim()||'BLIYO MARKET';settings.phone=phone;
-persist();toast('Pengaturan berhasil disimpan.');
+persist();
+saveSettingsRemote().then(()=>toast('Pengaturan berhasil disimpan.')).catch(e=>toast('Gagal menyimpan pengaturan online: '+e.message));
 }
 
 /* RENDER */
@@ -1061,6 +1133,10 @@ try{
 user=JSON.parse(sessionStorage.getItem('bl_user'));
 }catch{}
 }
+
+/* Ambil data toko dari database bersama sebelum halaman dirender */
+await loadSharedData();
+startSharedRealtime();
 
 /* Pulihkan media profil yang sedang login */
 if(user){
