@@ -259,7 +259,7 @@ async function loadSharedData(){
   for(const x of [pr,ca,ba,se])if(x.error)throw x.error;
   const admin=(await supabaseClient.auth.getSession()).data.session?.user?.id===ADMIN_UID;
   if(!pr.data.length&&admin){
-   const seed=products.filter(p=>!p.imageKey).map(productToRow);
+   const seed=products.map(productToRow);
    if(seed.length){const w=await supabaseClient.from('products').upsert(seed);if(w.error)throw w.error;}
   }else if(pr.data.length)products=pr.data.map(rowToProduct);
   if(!ca.data.length&&admin){
@@ -274,6 +274,16 @@ async function loadSharedData(){
   persist();
   if($('#view'))render();
  }catch(e){console.error('Supabase shared data:',e);toast('Data online belum termuat: '+(e.message||'periksa koneksi'))}
+}
+async function uploadSharedMedia(file,folder){
+ if(!file)throw new Error('File gambar tidak ditemukan.');
+ const ext=(String(file.name||'').split('.').pop()||({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','image/avif':'avif' }[file.type]||'img')).toLowerCase().replace(/[^a-z0-9]/g,'')||'img';
+ const path=folder+'/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'.'+ext;
+ const {error}=await supabaseClient.storage.from('bliyo-media').upload(path,file,{contentType:file.type||undefined,upsert:false,cacheControl:'3600'});
+ if(error)throw error;
+ const {data}=supabaseClient.storage.from('bliyo-media').getPublicUrl(path);
+ if(!data?.publicUrl)throw new Error('URL gambar online gagal dibuat.');
+ return data.publicUrl;
 }
 async function saveProductsRemote(){
  const rows=products.map(productToRow);
@@ -291,10 +301,9 @@ async function saveCategoriesRemote(){
  if(categories.length){const i=await supabaseClient.from('categories').insert(categories.map(name=>({name})));if(i.error)throw i.error;}
 }
 async function saveBannersRemote(){
- const d=await supabaseClient.from('banners').delete().neq('id',0);if(d.error)throw d.error;
  const rows=banners.filter(b=>typeof b==='string'||b.image).map((b,i)=>({image:typeof b==='string'?b:b.image,link:typeof b==='string'?'':(b.link||''),position:i}));
+ const d=await supabaseClient.from('banners').delete().neq('id',0);if(d.error)throw d.error;
  if(rows.length){const i=await supabaseClient.from('banners').insert(rows);if(i.error)throw i.error;}
- if(banners.some(b=>b?.key))toast('Banner upload perangkat belum tersinkron; gunakan URL gambar dulu.');
 }
 async function saveSettingsRemote(){
  const {error}=await supabaseClient.from('store_settings').upsert({id:1,store:settings.store,phone:settings.phone,updated_at:new Date().toISOString()});
@@ -306,7 +315,10 @@ function startSharedRealtime(){
  .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadSharedData())
  .on('postgres_changes',{event:'*',schema:'public',table:'banners'},()=>loadSharedData())
  .on('postgres_changes',{event:'*',schema:'public',table:'store_settings'},()=>loadSharedData())
- .subscribe();
+ .subscribe((status,error)=>{
+  console.info('BLIYO Realtime:',status,error||'');
+  if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.error('BLIYO Realtime gagal tersambung:',error);
+ });
 }
 
 /* DATABASE MEDIA - INDEXEDDB */
@@ -369,7 +381,7 @@ if(/^https?:\/\//i.test(v)||v.startsWith('/')||v.startsWith('#'))return v;
 return '';
 }
 function productImage(p){return (p?.imageKey&&mediaURL(p.imageKey))||p?.image||'https://placehold.co/700x450/e9edf3/66768b?text=BLIYO+MARKET'}
-function bannerSource(b){return typeof b==='string'?b:(b?.key?mediaURL(b.key):b?.image||'')}
+function bannerSource(b){return typeof b==='string'?b:(b?.image|| (b?.key?mediaURL(b.key):''))}
 function bannerLink(b){return typeof b==='object'?safeLink(b.link):''}
 
 /* PROFILE MEDIA PERSISTENCE - NEW */
@@ -1005,9 +1017,14 @@ let old=id?products.find(p=>p.id===id):null;
 let imageKey=old?.imageKey||'',image=$('#pImageUrl').value.trim()||old?.image||'';
 let file=$('#pImageFile')?.files?.[0];
 if(file){
-let newKey=await uploadMedia(file);if(!newKey)return;
-if(imageKey)await deleteMedia(imageKey);
-imageKey=newKey;image='';
+ let newKey=await uploadMedia(file);if(!newKey)return;
+ try{image=await uploadSharedMedia(file,'products')}
+ catch(e){await deleteMedia(newKey);toast('Gagal mengunggah gambar produk online: '+e.message);return}
+ if(imageKey)await deleteMedia(imageKey);
+ imageKey=newKey;
+}else if(!image&&imageKey){
+ try{const localBlob=await readMedia(imageKey);if(localBlob)image=await uploadSharedMedia(localBlob,'products')}
+ catch(e){toast('Gagal memindahkan gambar produk ke penyimpanan online: '+e.message);return}
 }
 let data={name,category:$('#pCategory').value,price,minQty:min,maxQty:max,rating:Math.max(0,Math.min(5,Number($('#pRating').value)||5)),description:$('#pDesc').value.trim(),image,imageKey};
 if(old){Object.assign(old,data);toast('Produk berhasil diperbarui.')}
@@ -1057,13 +1074,17 @@ saveCategoriesRemote().then(()=>{render();toast('Kategori dihapus.')}).catch(e=>
 async function addBanner(){
 let file=$('#bannerFile')?.files?.[0],url=$('#bannerImageUrl')?.value.trim()||'',link=safeLink($('#bannerLinkInput')?.value);
 if(!file&&!url)return toast('Pilih gambar atau masukkan URL gambar.');
-let item={key:'',image:'',link};
+let item={key:'',image:url,link};
 if(file){
-let key=await uploadMedia(file);if(!key)return;
-item.key=key;await loadMedia(key);
-}else item.image=url;
+ let key=await uploadMedia(file);if(!key)return;
+ try{
+  item.image=await uploadSharedMedia(file,'banners');
+  item.key=key;await loadMedia(key);
+ }catch(e){await deleteMedia(key);toast('Gagal mengunggah banner online: '+e.message);return}
+}
 banners.push(item);persist();
-saveBannersRemote().then(()=>{render();toast('Banner berhasil ditambahkan.')}).catch(e=>toast('Gagal menyimpan banner online: '+e.message));
+try{await saveBannersRemote();render();toast('Banner berhasil ditambahkan dan disinkronkan.')}
+catch(e){toast('Gagal menyimpan banner online: '+e.message)}
 }
 function deleteBanner(i){
 confirmDialog('Hapus banner?','Banner ini tidak akan ditampilkan lagi.',async()=>{
