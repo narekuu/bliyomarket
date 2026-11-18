@@ -275,7 +275,7 @@ async function loadSharedData(){
  }catch(e){console.error('Supabase shared data:',e);toast('Data online belum termuat: '+(e.message||'periksa koneksi'))}
 }
 async function saveProductsRemote(){
- const rows=products.filter(p=>!p.imageKey).map(productToRow);
+ const rows=products.map(productToRow);
  const localOnly=products.some(p=>p.imageKey);
  if(localOnly)toast('Foto upload perangkat belum tersinkron; gunakan URL gambar untuk dibagikan.');
  const {data,error}=await supabaseClient.from('products').select('id');
