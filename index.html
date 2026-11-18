@@ -751,19 +751,49 @@ ${captchaHTML()}
 <p class="muted" style="text-align:center;margin-top:19px">Sudah punya akun? <button class="link" onclick="navigate('login')">Login</button></p></div></section>`;
 }
 
-/* LOGIN - RESTORE AVATAR DAN BANNER */
+/* MIGRASI AKUN LAMA: ANTREAN AMAN TANPA MENYIMPAN PASSWORD */
+function migrationQueue(){return get('bl_auth_migration_queue',{});}
+function setMigrationState(email,state,nextRetryAt=0){
+const queue=migrationQueue();queue[email]={state,nextRetryAt,updatedAt:Date.now()};
+put('bl_auth_migration_queue',queue);
+}
+function clearMigrationState(email){
+const queue=migrationQueue();delete queue[email];put('bl_auth_migration_queue',queue);
+}
+
+/* LOGIN - RESTORE AVATAR DAN BANNER + FALLBACK RATE LIMIT */
 async function login(){
 if(!checkCaptcha())return;
 let email=$('#loginEmail').value.trim().toLowerCase(),pass=$('#loginPassword').value;
 if(!email||!pass)return toast('Masukkan email dan password.');
 let {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
 let migratedLegacy=null;
+if(!error)clearMigrationState(email);
 if(error){
 migratedLegacy=get('bl_users',[]).find(u=>u.email===email&&u.password===pass);
 if(!migratedLegacy)return toast('Email atau password salah.');
+const queued=migrationQueue()[email];
+if(queued?.state==='waiting_rate_limit'&&queued.nextRetryAt>Date.now()){
+const mins=Math.ceil((queued.nextRetryAt-Date.now())/60000);
+return toast('Migrasi sedang dalam antrean. Coba lagi sekitar '+mins+' menit.');
+}
+if(queued?.state==='waiting_confirmation'){
+return toast('Akun sudah menunggu konfirmasi email. Periksa kotak masuk/spam, lalu login setelah konfirmasi.');
+}
 const migrated=await supabaseClient.auth.signUp({email,password:pass,options:{data:{name:migratedLegacy.name||'Pengguna'},emailRedirectTo:'https://bliyomarket.vercel.app/'}});
-if(migrated.error)return toast('Akun lama belum bisa dipindahkan: '+migrated.error.message);
-if(!migrated.data.session)return toast('Akun lama berhasil didaftarkan ke server. Periksa email untuk konfirmasi, lalu login lagi.');
+if(migrated.error){
+const message=String(migrated.error.message||'');
+if(/rate.?limit|too many requests|email rate/i.test(message)){
+setMigrationState(email,'waiting_rate_limit',Date.now()+60*60*1000);
+return toast('Batas email Supabase tercapai. Akun aman dalam antrean; coba lagi sekitar 1 jam.');
+}
+return toast('Akun lama belum bisa dipindahkan: '+message);
+}
+if(!migrated.data.session){
+setMigrationState(email,'waiting_confirmation');
+return toast('Akun sudah didaftarkan ke server. Periksa email termasuk folder spam, lalu konfirmasi sebelum login lagi.');
+}
+clearMigrationState(email);
 data=migrated.data;
 put('bl_users',get('bl_users',[]).filter(u=>u.email!==email));
 }
