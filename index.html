@@ -272,6 +272,7 @@ async function loadSharedData(){
   if(se.data)settings={store:se.data.store,phone:se.data.phone};
   else if(admin){const w=await supabaseClient.from('store_settings').upsert({id:1,store:settings.store||'BLIYO MARKET',phone:settings.phone||''});if(w.error)throw w.error;}
   persist();
+  if($('#view'))render();
  }catch(e){console.error('Supabase shared data:',e);toast('Data online belum termuat: '+(e.message||'periksa koneksi'))}
 }
 async function saveProductsRemote(){
