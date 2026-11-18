@@ -198,7 +198,7 @@ BLIYO MARKET
 <button class="iconbtn" onclick="navigate('profile')" aria-label="Profil"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></button>
 </div>
 </header>
-<main id="view" aria-busy="true"><div aria-label="Memuat BLIYO MARKET"><div class="skeleton sk-title"></div><div class="skeleton sk-line"></div><div class="skeleton sk-banner"></div><div class="sk-grid"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></div><div class="skeleton sk-panel"></div><div class="skeleton sk-panel"></div></div></main>
+<main id="view" aria-busy="true"></main>
 </div>
 
 <nav class="bottomnav glass" id="bottomNav">
@@ -462,8 +462,29 @@ localStorage.setItem('bl_theme',document.body.classList.contains('dark')?'dark':
 }
 if(localStorage.getItem('bl_theme')==='dark')document.body.classList.add('dark');
 
-function skeletonHTML(){
-return `<div aria-label="Memuat halaman"><div class="skeleton sk-title"></div><div class="skeleton sk-line"></div><div class="skeleton sk-banner"></div><div class="sk-grid"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></div><div class="skeleton sk-panel"></div><div class="skeleton sk-panel"></div></div>`;
+function skeletonHTML(page='home'){
+const block=(cls,style='')=>`<div class="skeleton ${cls}" style="${style}"></div>`;
+const title=()=>block('sk-title','width:48%');
+const subtitle=()=>block('sk-line','width:72%;margin:10px 0 20px');
+const cards=(count=4,style='')=>Array.from({length:count},()=>block('sk-card',style)).join('');
+const panel=(height=100)=>block('sk-panel',`height:${height}px`);
+const grid=(count=4,columns=2,style='')=>`<div style="display:grid;grid-template-columns:repeat(${columns},minmax(0,1fr));gap:12px">${cards(count,style)}</div>`;
+const row=(avatar=true)=>`<div style="display:flex;align-items:center;gap:13px;padding:14px;border:1px solid var(--line);border-radius:17px;margin:10px 0">${avatar?block('','width:48px;height:48px;border-radius:50%;flex:none'):''}<div style="flex:1">${block('sk-line','width:55%')}${block('sk-line','width:82%;height:10px;margin-top:9px')}</div></div>`;
+let body='';
+switch(page){
+case 'home': body=title()+subtitle()+block('sk-banner','height:185px;margin:18px 0')+title()+grid(4,4,'height:76px')+title()+grid(4,2,'height:205px');break;
+case 'categories': body=title()+subtitle()+grid(8,2,'height:105px');break;
+case 'products': body=title()+subtitle()+block('sk-panel','height:48px;margin:16px 0')+grid(6,2,'height:225px');break;
+case 'history': body=title()+subtitle()+Array.from({length:5},()=>row()).join('');break;
+case 'profile': body=block('sk-banner','height:150px;margin:8px 0 0')+`<div style="display:flex;align-items:center;gap:14px;margin:-28px 0 22px 18px;position:relative">${block('','width:76px;height:76px;border-radius:50%;border:5px solid var(--bg)') }<div style="flex:1;margin-top:28px">${block('sk-line','width:55%')}${block('sk-line','width:32%;height:9px')}</div></div>`+grid(3,3,'height:75px')+panel(145)+row(false)+row(false);break;
+case 'login': case 'register': body=`<div style="max-width:440px;margin:25px auto">${block('','width:65px;height:65px;border-radius:20px;margin:0 auto 25px')}${title()}${subtitle()}${panel(48)}${panel(48)}${panel(48)}</div>`;break;
+case 'editprofile': body=title()+panel(145)+row(false)+panel(48)+panel(48)+panel(48);break;
+case 'password': body=title()+subtitle()+panel(48)+panel(48)+panel(48);break;
+case 'admin': body=title()+subtitle()+grid(3,3,'height:92px')+panel(190)+title()+Array.from({length:4},()=>row()).join('');break;
+case 'search': body=title()+panel(48)+title()+grid(4,2,'height:210px');break;
+default: body=title()+subtitle()+panel(150)+grid(4,2,'height:190px');
+}
+return `<div aria-label="Memuat halaman ${page}" style="padding-bottom:24px">${body}</div>`;
 }
 
 /* ROUTING */
@@ -1137,6 +1158,9 @@ if(current==='login'||current==='register')newCaptcha();
 
 /* SESSION */
 async function init(){
+current=pageFromURL();
+if(current==='admin')$('#bottomNav').classList.add('hidden');
+$('#view').innerHTML=skeletonHTML(current);
 try{await openMediaDB()}catch(e){console.error('Media DB:',e)}
 
 const {data:{session}}=await supabaseClient.auth.getSession();
