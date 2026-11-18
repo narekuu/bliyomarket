@@ -240,6 +240,7 @@ let current='home',adminTab='overview',bannerIndex=0,bannerTimer=null,bannerTran
 let selectedProduct=null,captcha={code:'',expires:0,timer:null};
 let pageToken=0,mediaDB=null,mediaCache={};
 let productCategory='',productSort='popular',orderSearch='';
+let adminUsers=[];
 
 function persist(){
 put('bl_products',products);put('bl_categories',categories);put('bl_banners',banners);put('bl_orders',orders);put('bl_settings',settings);
@@ -325,12 +326,31 @@ async function saveSettingsRemote(){
  const {error}=await supabaseClient.from('store_settings').upsert({id:1,store:settings.store,phone:settings.phone,updated_at:new Date().toISOString()});
  if(error)throw error;
 }
+async function loadOrdersRemote(){
+ if(!user?.id)return;
+ let query=supabaseClient.from('orders').select('*').order('created_at',{ascending:false});
+ if(user.role!=='admin')query=query.eq('user_id',user.id);
+ const {data,error}=await query;
+ if(error)throw error;
+ orders=(data||[]).map(o=>({id:o.id,user_id:o.user_id,name:o.name,email:o.email,product:o.product,price:Number(o.price)||0,qty:Number(o.qty)||1,total:Number(o.total)||0,status:o.status,date:o.date_label||new Date(o.created_at).toLocaleString('id-ID'),message:o.message||''}));
+ put('bl_orders',orders);
+ if(current==='admin'||current==='history')render();
+}
+async function loadAdminUsers(){
+ if(user?.role!=='admin')return;
+ const {data,error}=await supabaseClient.from('user_profiles').select('id,email,name,created_at').order('created_at',{ascending:false});
+ if(error)throw error;
+ adminUsers=data||[];
+ if(current==='admin'&&adminTab==='users')render();
+}
 function startSharedRealtime(){
  supabaseClient.channel('bliyo-shared-store')
  .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>loadSharedData())
  .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadSharedData())
  .on('postgres_changes',{event:'*',schema:'public',table:'banners'},()=>loadSharedData())
  .on('postgres_changes',{event:'*',schema:'public',table:'store_settings'},()=>loadSharedData())
+ .on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>loadOrdersRemote().catch(e=>console.error('Pesanan:',e)))
+ .on('postgres_changes',{event:'*',schema:'public',table:'user_profiles'},()=>loadAdminUsers().catch(e=>console.error('Pengguna:',e)))
  .subscribe((status,error)=>{
   console.info('BLIYO Realtime:',status,error||'');
   if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.error('BLIYO Realtime gagal tersambung:',error);
@@ -662,19 +682,25 @@ function updateTotal(){
 let qty=getQty(),total=$('#buyTotal');if(!total||!selectedProduct)return;
 total.textContent=qty===null?'Masukkan jumlah':money(selectedProduct.price*qty);
 }
-function sendWhatsApp(){
+async function sendWhatsApp(){
 let p=selectedProduct;if(!p)return;
 let qty=getQty(),min=Math.max(1,Number(p.minQty)||1),max=Math.max(min,Number(p.maxQty)||99);
 if(qty===null||qty<min||qty>max)return toast(`Jumlah harus ${min} sampai ${max}.`);
 if(!settings.phone)return toast('Nomor WhatsApp admin belum diatur.');
-let orderId=makeOrderId(),total=p.price*qty,additional=$('#extraMessage')?.value.trim()||'';
-orders.unshift({id:orderId,name:user.name,email:user.email,product:p.name,price:p.price,qty,total,status:'Menunggu',date:new Date().toLocaleString('id-ID'),message:additional});
-p.sold=(p.sold||0)+qty;persist();
+if(!user?.id)return toast('Login ulang dengan akun online sebelum memesan.');
+let orderId=makeOrderId(),total=p.price*qty,additional=$('#extraMessage')?.value.trim()||'',date=new Date().toLocaleString('id-ID');
+const row={id:orderId,user_id:user.id,name:user.name,email:user.email,product:p.name,price:p.price,qty,total,status:'Menunggu',date_label:date,message:additional};
+const {error}=await supabaseClient.from('orders').insert(row);
+if(error)return toast('Pesanan gagal disimpan: '+error.message);
+orders.unshift({...row,date});p.sold=(p.sold||0)+qty;persist();
+const {error:soldError}=await supabaseClient.from('products').update({sold:p.sold,updated_at:new Date().toISOString()}).eq('id',p.id);
+if(soldError)console.error('Jumlah terjual belum tersinkron:',soldError);
 let message=`Halo Admin BLIYO MARKET! 👋
 
 Saya ingin melakukan pemesanan produk di BLIYO MARKET. Berikut adalah detail pesanan saya:
 
 Detail Pemesanan
+ID Pesanan: ${orderId}
 Nama: ${user.name}
 Email: ${user.email}
 Produk: ${p.name}
@@ -729,60 +755,43 @@ ${captchaHTML()}
 async function login(){
 if(!checkCaptcha())return;
 let email=$('#loginEmail').value.trim().toLowerCase(),pass=$('#loginPassword').value;
-
-if(email===ADMIN_EMAIL){
-const {data,error}=await supabaseClient.auth.signInWithPassword({email:ADMIN_EMAIL,password:pass});
-if(error||!data?.user)return toast('Login admin gagal. Periksa email dan password Supabase.');
-if(data.user.id!==ADMIN_UID){
-await supabaseClient.auth.signOut();
-return toast('Akun ini tidak memiliki izin admin BLIYO.');
+if(!email||!pass)return toast('Masukkan email dan password.');
+let {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
+if(error){
+let legacy=get('bl_users',[]).find(u=>u.email===email&&u.password===pass);
+if(!legacy)return toast('Email atau password salah.');
+const migrated=await supabaseClient.auth.signUp({email,password:pass,options:{data:{name:legacy.name||'Pengguna'},emailRedirectTo:'https://bliyomarket.vercel.app/'}});
+if(migrated.error)return toast('Akun lama belum bisa dipindahkan: '+migrated.error.message);
+if(!migrated.data.session)return toast('Akun lama berhasil didaftarkan ke server. Periksa email untuk konfirmasi, lalu login lagi.');
+data=migrated.data;get('bl_users',[]).filter(u=>u.email!==email);
+put('bl_users',get('bl_users',[]).filter(u=>u.email!==email));
 }
-user={name:'Administrator',email:ADMIN_EMAIL,role:'admin'};
-put('bl_user',user);
-setSession();
+if(!data?.user)return toast('Login belum berhasil. Coba lagi.');
+if(email===ADMIN_EMAIL&&data.user.id!==ADMIN_UID){await supabaseClient.auth.signOut();return toast('Akun ini tidak memiliki izin admin BLIYO.');}
+const isAdmin=data.user.id===ADMIN_UID;
+const {data:profile}=isAdmin?{data:null}:await supabaseClient.from('user_profiles').select('name').eq('id',data.user.id).maybeSingle();
+let legacyProfile=get('bl_users',[]).find(u=>u.email===email);
+user={id:data.user.id,name:isAdmin?'Administrator':profile?.name||data.user.user_metadata?.name||legacyProfile?.name||'Pengguna',email,role:isAdmin?'admin':'user',photoKey:legacyProfile?.photoKey||'',coverKey:legacyProfile?.coverKey||''};
+put('bl_user',user);setSession();
 await restoreProfileMedia();
-clearInterval(captchaTimer);
-navigate('home');
-toast('Login admin berhasil melalui Supabase!');
-return;
-}
-
-let users=get('bl_users',[]),found=users.find(u=>u.email===email&&u.password===pass);
-if(!found)return toast('Email atau password salah.');
-
-user={
-name:found.name,
-email:found.email,
-photoKey:found.photoKey||'',
-coverKey:found.coverKey||'',
-role:found.role||'user'
-};
-
-put('bl_user',user);
-setSession();
-
-/* Pulihkan gambar dari IndexedDB sebelum halaman dibuka */
-await restoreProfileMedia();
-
-clearInterval(captchaTimer);
-navigate('home');
-toast('Berhasil login! Avatar dan banner berhasil dipulihkan.');
+if(isAdmin)await loadAdminUsers().catch(e=>console.error(e));
+await loadOrdersRemote().catch(e=>console.error('Pesanan:',e));
+clearInterval(captchaTimer);navigate('home');toast('Login berhasil. Akun sudah tersambung ke server.');
 }
 
 function setSession(){
 if($('#remember')?.checked)localStorage.setItem('bl_exp',Date.now()+2592000000);
 else{sessionStorage.setItem('bl_user',JSON.stringify(user));localStorage.removeItem('bl_exp')}
 }
-function register(){
+async function register(){
 if(!checkCaptcha())return;
 let name=$('#regName').value.trim(),email=$('#regEmail').value.trim().toLowerCase(),password=$('#regPassword').value;
 if(!name||!email||!email.includes('@')||password.length<6)return toast('Periksa kembali data pendaftaran.');
-let users=get('bl_users',[]);if(users.some(u=>u.email===email))return toast('Email sudah terdaftar.');
-users.push({name,email,password,photoKey:'',coverKey:''});put('bl_users',users);
-user={name,email,role:'user',photoKey:'',coverKey:''};
-put('bl_user',user);
-saveLastProfile();
-clearInterval(captchaTimer);navigate('home');toast('Akun berhasil dibuat!');
+const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{name},emailRedirectTo:'https://bliyomarket.vercel.app/'}});
+if(error)return toast('Pendaftaran gagal: '+error.message);
+if(!data.session){clearInterval(captchaTimer);toast('Pendaftaran berhasil. Periksa email untuk konfirmasi, lalu login.');navigate('login');return;}
+user={id:data.user.id,name,email,role:'user',photoKey:'',coverKey:''};put('bl_user',user);setSession();saveLastProfile();
+clearInterval(captchaTimer);navigate('home');toast('Akun berhasil dibuat dan tersimpan online!');
 }
 
 /* HISTORY */
@@ -895,16 +904,12 @@ if($('#coverPreview'))$('#coverPreview').src=url;
 toast('Banner profil berhasil diperbarui.');
 }
 
-function saveProfile(){
+async function saveProfile(){
 let name=$('#profileName').value.trim();if(!name)return toast('Nama tidak boleh kosong.');
-user.name=name;
-put('bl_user',user);
-
-let users=get('bl_users',[]),u=users.find(x=>x.email===user.email);
-if(u){u.name=name;u.photoKey=user.photoKey||u.photoKey||'';u.coverKey=user.coverKey||u.coverKey||'';put('bl_users',users)}
-
-saveLastProfile();
-toast('Profil disimpan.');navigate('profile');
+user.name=name;put('bl_user',user);
+const {error}=await supabaseClient.from('user_profiles').update({name,updated_at:new Date().toISOString()}).eq('id',user.id);
+if(error)return toast('Gagal menyimpan profil: '+error.message);
+saveLastProfile();toast('Profil disimpan.');navigate('profile');
 }
 
 function passwordPage(){
@@ -918,27 +923,17 @@ async function changePassword(){
 let old=$('#oldPass').value,next=$('#newPass').value,confirm=$('#confirmPass').value;
 if(next.length<6)return toast('Password baru minimal 6 karakter.');
 if(next!==confirm)return toast('Konfirmasi password tidak cocok.');
-if(user.role==='admin'){
-const {error:verifyError}=await supabaseClient.auth.signInWithPassword({email:ADMIN_EMAIL,password:old});
+const {error:verifyError}=await supabaseClient.auth.signInWithPassword({email:user.email,password:old});
 if(verifyError)return toast('Password lama salah.');
 const {error}=await supabaseClient.auth.updateUser({password:next});
 if(error)return toast('Gagal memperbarui password: '+error.message);
-}else{
-let users=get('bl_users',[]),u=users.find(x=>x.email===user.email);
-if(!u||u.password!==old)return toast('Password lama salah.');
-u.password=next;put('bl_users',users);
-}
 toast('Password berhasil diperbarui.');navigate('profile');
 }
 
 /* LOGOUT - TIDAK MENGHAPUS FOTO ATAU BANNER */
 async function logout(){
-if(user){
-saveAccountProfile();
-saveLastProfile();
-}
-if(user?.role==='admin')await supabaseClient.auth.signOut();
-
+if(user){saveAccountProfile();saveLastProfile();}
+await supabaseClient.auth.signOut();
 /* Hanya mengakhiri sesi login */
 user=null;
 localStorage.removeItem('bl_user');
@@ -959,7 +954,7 @@ return `<div class="admin-heading row" style="margin-bottom:20px"><div><div clas
 }
 function renderAdmin(){
 return `<section class="fade">${adminHeader()}<div class="admin-tabs">
-${[['overview','Ringkasan'],['products','Produk'],['categories','Kategori'],['banners','Banner'],['orders','Pesanan'],['settings','Pengaturan']].map(([k,v])=>`<button class="admin-tab ${adminTab===k?'active':''}" onclick="adminTab='${k}';render()">${v}</button>`).join('')}
+${[['overview','Ringkasan'],['products','Produk'],['categories','Kategori'],['banners','Banner'],['orders','Pesanan'],['users','Pengguna'],['settings','Pengaturan']].map(([k,v])=>`<button class="admin-tab ${adminTab===k?'active':''}" onclick="adminTab='${k}';render()">${v}</button>`).join('')}
 </div><div>${adminContent()}</div></section>`;
 }
 function adminContent(){
@@ -1007,6 +1002,8 @@ if(adminTab==='orders')return `<div class="section-head"><h2>Manajemen pesanan</
 <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input class="search" id="adminOrderSearch" placeholder="Cari ID pemesanan..." value="${esc(orderSearch)}" oninput="searchAdminOrders()"></div>
 <div id="adminOrderResults">${adminOrderResults()}</div>`;
 
+if(adminTab==='users')return `<div class="section-head"><div><h2>Pengguna terdaftar</h2><p class="muted">Akun pelanggan yang terhubung ke Supabase Auth.</p></div><strong>${adminUsers.length} akun</strong></div>
+<div class="panel">${adminUsers.map(u=>`<div class="admin-item"><div class="grow"><strong>${esc(u.name||'Pengguna')}</strong><small>${esc(u.email)} · Bergabung ${new Date(u.created_at).toLocaleDateString('id-ID')}</small></div><span class="status">User</span></div>`).join('')||'<div class="empty">Belum ada pengguna terdaftar.</div>'}</div>`;
 if(adminTab==='settings')return `<div class="panel"><h2>Pengaturan toko</h2>
 <div class="field"><label>Nama toko</label><input id="storeName" value="${esc(settings.store)}"></div>
 <div class="field"><label>Nomor WhatsApp admin</label><input id="storePhone" value="${esc(settings.phone)}"></div>
@@ -1133,7 +1130,11 @@ banners.splice(i,1);bannerIndex=0;persist();
 saveBannersRemote().then(()=>{render();toast('Banner dihapus.')}).catch(e=>toast('Gagal menghapus banner online: '+e.message));
 });
 }
-function setStatus(id,status){let o=orders.find(x=>x.id===id);if(o)o.status=status;persist();render();toast('Status pesanan diperbarui.')}
+async function setStatus(id,status){
+const {error}=await supabaseClient.from('orders').update({status}).eq('id',id);
+if(error)return toast('Gagal mengubah status: '+error.message);
+let o=orders.find(x=>x.id===id);if(o)o.status=status;persist();render();toast('Status pesanan diperbarui.');
+}
 function saveSettings(){
 let phone=$('#storePhone').value.trim().replace(/\D/g,'');
 if(!phone)return toast('Nomor WhatsApp wajib diisi.');
@@ -1162,53 +1163,27 @@ current=pageFromURL();
 if(current==='admin')$('#bottomNav').classList.add('hidden');
 $('#view').innerHTML=skeletonHTML(current);
 try{await openMediaDB()}catch(e){console.error('Media DB:',e)}
-
 const {data:{session}}=await supabaseClient.auth.getSession();
-if(session?.user?.id==='b0a2f77e-ef24-4b84-9c11-58626166184d'){
-user={name:'Administrator',email:'bliyomarket@gmail.com',role:'admin'};
+user=null;
+if(session?.user){
+const authUser=session.user,isAdmin=authUser.id===ADMIN_UID;
+const {data:profile}=isAdmin?{data:null}:await supabaseClient.from('user_profiles').select('name').eq('id',authUser.id).maybeSingle();
+let local=get('bl_users',[]).find(x=>x.email===authUser.email);
+user={id:authUser.id,name:isAdmin?'Administrator':profile?.name||authUser.user_metadata?.name||'Pengguna',email:authUser.email,role:isAdmin?'admin':'user',photoKey:local?.photoKey||'',coverKey:local?.coverKey||''};
 put('bl_user',user);
-}else if(user?.role==='admin'){
-user=null;
-localStorage.removeItem('bl_user');
-sessionStorage.removeItem('bl_user');
+}else{
+localStorage.removeItem('bl_user');sessionStorage.removeItem('bl_user');localStorage.removeItem('bl_exp');
 }
-
-let expiry=Number(localStorage.getItem('bl_exp')||0);
-if(expiry&&expiry<Date.now()){
-/* Akhiri sesi tanpa menghapus data akun atau gambar */
-if(user){
-saveLastProfile();
-}
-user=null;
-localStorage.removeItem('bl_user');
-localStorage.removeItem('bl_exp');
-}
-
-if(sessionStorage.getItem('bl_user')){
-try{
-user=JSON.parse(sessionStorage.getItem('bl_user'));
-}catch{}
-}
-
-/* Ambil data toko dari database bersama sebelum halaman dirender */
-await loadSharedData();
-startSharedRealtime();
-
-/* Pulihkan media profil yang sedang login */
+await loadSharedData();startSharedRealtime();
 if(user){
 await restoreProfileMedia();
-}else{
-/* Pulihkan foto profil terakhir untuk tampilan saat logout */
-await restoreLastProfileMedia();
-}
-
+await loadOrdersRemote().catch(e=>console.error('Pesanan online:',e));
+if(user.role==='admin')await loadAdminUsers().catch(e=>console.error('Pengguna online:',e));
+}else await restoreLastProfileMedia();
 for(let p of products){if(p.imageKey)await loadMedia(p.imageKey)}
 for(let b of banners){if(b&&typeof b==='object'&&b.key)await loadMedia(b.key)}
-
-current=pageFromURL();
-if(!user&&current==='admin')current='home';
-history.replaceState({page:current},'','/'+current);
-render();
+current=pageFromURL();if(!user&&current==='admin')current='home';
+history.replaceState({page:current},'','/'+current);render();
 }
 init();
 </script>
