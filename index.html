@@ -757,20 +757,21 @@ if(!checkCaptcha())return;
 let email=$('#loginEmail').value.trim().toLowerCase(),pass=$('#loginPassword').value;
 if(!email||!pass)return toast('Masukkan email dan password.');
 let {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
+let migratedLegacy=null;
 if(error){
-let legacy=get('bl_users',[]).find(u=>u.email===email&&u.password===pass);
-if(!legacy)return toast('Email atau password salah.');
-const migrated=await supabaseClient.auth.signUp({email,password:pass,options:{data:{name:legacy.name||'Pengguna'},emailRedirectTo:'https://bliyomarket.vercel.app/'}});
+migratedLegacy=get('bl_users',[]).find(u=>u.email===email&&u.password===pass);
+if(!migratedLegacy)return toast('Email atau password salah.');
+const migrated=await supabaseClient.auth.signUp({email,password:pass,options:{data:{name:migratedLegacy.name||'Pengguna'},emailRedirectTo:'https://bliyomarket.vercel.app/'}});
 if(migrated.error)return toast('Akun lama belum bisa dipindahkan: '+migrated.error.message);
 if(!migrated.data.session)return toast('Akun lama berhasil didaftarkan ke server. Periksa email untuk konfirmasi, lalu login lagi.');
-data=migrated.data;get('bl_users',[]).filter(u=>u.email!==email);
+data=migrated.data;
 put('bl_users',get('bl_users',[]).filter(u=>u.email!==email));
 }
 if(!data?.user)return toast('Login belum berhasil. Coba lagi.');
 if(email===ADMIN_EMAIL&&data.user.id!==ADMIN_UID){await supabaseClient.auth.signOut();return toast('Akun ini tidak memiliki izin admin BLIYO.');}
 const isAdmin=data.user.id===ADMIN_UID;
 const {data:profile}=isAdmin?{data:null}:await supabaseClient.from('user_profiles').select('name').eq('id',data.user.id).maybeSingle();
-let legacyProfile=get('bl_users',[]).find(u=>u.email===email);
+let legacyProfile=migratedLegacy||get('bl_users',[]).find(u=>u.email===email);
 user={id:data.user.id,name:isAdmin?'Administrator':profile?.name||data.user.user_metadata?.name||legacyProfile?.name||'Pengguna',email,role:isAdmin?'admin':'user',photoKey:legacyProfile?.photoKey||'',coverKey:legacyProfile?.coverKey||''};
 put('bl_user',user);setSession();
 await restoreProfileMedia();
