@@ -198,7 +198,7 @@ BLIYO MARKET
 <button class="iconbtn" onclick="navigate('profile')" aria-label="Profil"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></button>
 </div>
 </header>
-<main id="view"></main>
+<main id="view" aria-busy="true"><div aria-label="Memuat BLIYO MARKET"><div class="skeleton sk-title"></div><div class="skeleton sk-line"></div><div class="skeleton sk-banner"></div><div class="sk-grid"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></div><div class="skeleton sk-panel"></div><div class="skeleton sk-panel"></div></div></main>
 </div>
 
 <nav class="bottomnav glass" id="bottomNav">
@@ -1124,21 +1124,15 @@ saveSettingsRemote().then(()=>toast('Pengaturan berhasil disimpan.')).catch(e=>t
 /* RENDER */
 function render(){
 clearInterval(bannerTimer);clearTimeout(bannerTransitionTimer);
-let token=++pageToken,isAdmin=current==='admin';
+let isAdmin=current==='admin';
 $('#bottomNav').classList.toggle('hidden',isAdmin);
 document.querySelectorAll('.navitem').forEach(el=>el.classList.toggle('active',el.dataset.page===current));
-$('#view').innerHTML=skeletonHTML();
-requestAnimationFrame(()=>{
-if(token!==pageToken)return;
-requestAnimationFrame(()=>{
-if(token!==pageToken)return;
 let pages={home:homePage,categories:categoriesPage,products:productsPage,history:historyPage,profile:profilePage,login:loginPage,register:registerPage,editprofile:editProfilePage,password:passwordPage,admin:renderAdmin,search:searchPage};
 $('#view').innerHTML=(pages[current]||homePage)();
+$('#view').setAttribute('aria-busy','false');
 $('#view').classList.remove('page-enter');void $('#view').offsetWidth;$('#view').classList.add('page-enter');
 if(current==='home')startBanners();
 if(current==='login'||current==='register')newCaptcha();
-});
-});
 }
 
 /* SESSION */
