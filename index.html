@@ -210,7 +210,13 @@ BLIYO MARKET
 </nav>
 <div id="modalRoot"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL='https://wgeqrtlqdhnlzedgnrmm.supabase.co';
+const SUPABASE_KEY='sb_publishable_tT3y2YtcCaB49bQKrYq92A_fdPlJPNQ';
+const ADMIN_EMAIL='bliyomarket@gmail.com';
+const ADMIN_UID='b0a2f77e-ef24-4b84-9c11-58626166184d';
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=s=>document.querySelector(s);
 const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
 const put=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
@@ -220,7 +226,7 @@ const MAX_MEDIA=25*1024*1024;
 
 let user=get('bl_user',null);
 let lastProfile=get('bl_last_profile',null);
-let adminCredentials=get('bl_admin_credentials',{email:'bliyomarket@gmail.com',password:'BLIYO 1955'});
+/* Admin diverifikasi melalui Supabase Auth. */
 let products=get('bl_products',[
 {id:1,name:'Spotify Premium',category:'Aplikasi Premium',price:15000,minQty:1,maxQty:99,rating:4.9,sold:120,image:'https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=700',description:'Akses musik premium dengan pengalaman mendengarkan yang nyaman.'},
 {id:2,name:'Canva Pro',category:'Aplikasi Premium',price:12000,minQty:1,maxQty:50,rating:4.8,sold:95,image:'https://images.unsplash.com/photo-1545235617-9465d2a55698?w=700',description:'Buat desain dengan fitur premium.'},
@@ -611,14 +617,20 @@ async function login(){
 if(!checkCaptcha())return;
 let email=$('#loginEmail').value.trim().toLowerCase(),pass=$('#loginPassword').value;
 
-if(email===adminCredentials.email.toLowerCase()&&pass===adminCredentials.password){
-user={name:'Administrator',email:adminCredentials.email,role:'admin'};
+if(email===ADMIN_EMAIL){
+const {data,error}=await supabaseClient.auth.signInWithPassword({email:ADMIN_EMAIL,password:pass});
+if(error||!data?.user)return toast('Login admin gagal. Periksa email dan password Supabase.');
+if(data.user.id!==ADMIN_UID){
+await supabaseClient.auth.signOut();
+return toast('Akun ini tidak memiliki izin admin BLIYO.');
+}
+user={name:'Administrator',email:ADMIN_EMAIL,role:'admin'};
 put('bl_user',user);
 setSession();
 await restoreProfileMedia();
 clearInterval(captchaTimer);
 navigate('home');
-toast('Login admin berhasil!');
+toast('Login admin berhasil melalui Supabase!');
 return;
 }
 
@@ -789,21 +801,30 @@ return `<section class="fade"><h1 class="page-title">Keamanan akun</h1><p class=
 <div class="field"><label>Konfirmasi password baru</label><input id="confirmPass" type="password" placeholder="Ulangi password baru"></div>
 <button class="primary" style="width:100%;margin-top:20px" onclick="changePassword()">Simpan password baru</button></div></section>`;
 }
-function changePassword(){
+async function changePassword(){
 let old=$('#oldPass').value,next=$('#newPass').value,confirm=$('#confirmPass').value;
 if(next.length<6)return toast('Password baru minimal 6 karakter.');
 if(next!==confirm)return toast('Konfirmasi password tidak cocok.');
-if(user.role==='admin'){if(old!==adminCredentials.password)return toast('Password lama salah.');adminCredentials.password=next;put('bl_admin_credentials',adminCredentials)}
-else{let users=get('bl_users',[]),u=users.find(x=>x.email===user.email);if(!u||u.password!==old)return toast('Password lama salah.');u.password=next;put('bl_users',users)}
+if(user.role==='admin'){
+const {error:verifyError}=await supabaseClient.auth.signInWithPassword({email:ADMIN_EMAIL,password:old});
+if(verifyError)return toast('Password lama salah.');
+const {error}=await supabaseClient.auth.updateUser({password:next});
+if(error)return toast('Gagal memperbarui password: '+error.message);
+}else{
+let users=get('bl_users',[]),u=users.find(x=>x.email===user.email);
+if(!u||u.password!==old)return toast('Password lama salah.');
+u.password=next;put('bl_users',users);
+}
 toast('Password berhasil diperbarui.');navigate('profile');
 }
 
 /* LOGOUT - TIDAK MENGHAPUS FOTO ATAU BANNER */
-function logout(){
+async function logout(){
 if(user){
 saveAccountProfile();
 saveLastProfile();
 }
+if(user?.role==='admin')await supabaseClient.auth.signOut();
 
 /* Hanya mengakhiri sesi login */
 user=null;
@@ -1013,6 +1034,16 @@ if(current==='login'||current==='register')newCaptcha();
 /* SESSION */
 async function init(){
 try{await openMediaDB()}catch(e){console.error('Media DB:',e)}
+
+const {data:{session}}=await supabaseClient.auth.getSession();
+if(session?.user?.id==='b0a2f77e-ef24-4b84-9c11-58626166184d'){
+user={name:'Administrator',email:'bliyomarket@gmail.com',role:'admin'};
+put('bl_user',user);
+}else if(user?.role==='admin'){
+user=null;
+localStorage.removeItem('bl_user');
+sessionStorage.removeItem('bl_user');
+}
 
 let expiry=Number(localStorage.getItem('bl_exp')||0);
 if(expiry&&expiry<Date.now()){
