@@ -628,37 +628,35 @@ body.dark .admin-drawer-link{color:#d6e6f4}
 body.dark .admin-drawer-link .drawer-icon,body.dark .admin-drawer-foot{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.13);color:#d6e6f4}
 body.dark .admin-menu-trigger{background:rgba(20,38,57,.82);color:#eff7ff;border-color:rgba(255,255,255,.2)}
 @media(min-width:760px){.admin-drawer{left:20px;top:20px;bottom:20px;width:320px}}
-/* Dynamic capsule — transisi normal <-> compact yang lembut dan konsisten */
+/* Dynamic capsule — gerakan lebih lembut, tanpa bayangan pada mode normal */
 .topbar{
  position:fixed!important;
- transform:translate3d(-50%,0,0) scale(1);
+ transform:translate3d(-50%,0,0);
  transform-origin:50% 50%;
  transition:
-  width .9s cubic-bezier(.16,1,.3,1),
-  height .9s cubic-bezier(.16,1,.3,1),
-  top .9s cubic-bezier(.16,1,.3,1),
-  padding .9s cubic-bezier(.16,1,.3,1),
-  border-radius .9s cubic-bezier(.16,1,.3,1),
-  transform .9s cubic-bezier(.16,1,.3,1),
-  background-color .65s ease,
-  border-color .65s ease;
- will-change:width,height,top,transform,border-radius;
+  width 1.15s cubic-bezier(.22,1,.36,1),
+  height 1.15s cubic-bezier(.22,1,.36,1),
+  top 1.15s cubic-bezier(.22,1,.36,1),
+  padding 1.15s cubic-bezier(.22,1,.36,1),
+  border-radius 1.15s cubic-bezier(.22,1,.36,1),
+  background-color .9s cubic-bezier(.22,1,.36,1),
+  border-color .9s cubic-bezier(.22,1,.36,1);
+ will-change:width,height,top,padding,border-radius;
+ box-shadow:none!important;
+ filter:none!important;
 }
 .topbar-backplate{
+ box-shadow:none!important;
  transition:
-  opacity .85s cubic-bezier(.16,1,.3,1),
-  -webkit-backdrop-filter .85s cubic-bezier(.16,1,.3,1),
-  backdrop-filter .85s cubic-bezier(.16,1,.3,1),
+  opacity 1s cubic-bezier(.22,1,.36,1),
   visibility 0s linear 0s;
 }
 .topbar-backplate.is-hidden{
  opacity:0;
  visibility:hidden;
  transition:
-  opacity .85s cubic-bezier(.16,1,.3,1),
-  -webkit-backdrop-filter .85s cubic-bezier(.16,1,.3,1),
-  backdrop-filter .85s cubic-bezier(.16,1,.3,1),
-  visibility 0s linear .85s;
+  opacity 1s cubic-bezier(.22,1,.36,1),
+  visibility 0s linear 1s;
 }
 .topbar.is-scrolled{
  width:min(420px,calc(100% - 104px))!important;
@@ -666,40 +664,39 @@ body.dark .admin-menu-trigger{background:rgba(20,38,57,.82);color:#eff7ff;border
  top:18px!important;
  padding:0 12px!important;
  border-radius:28px!important;
- transform:translate3d(-50%,0,0) scale(.985);
+ box-shadow:none!important;
 }
-.topbar.is-scrolled:before{opacity:0!important}
+.topbar:before,.topbar.is-scrolled:before{box-shadow:none!important}
 .topbar .brand{
  transition:
-  font-size .9s cubic-bezier(.16,1,.3,1),
-  gap .9s cubic-bezier(.16,1,.3,1),
-  letter-spacing .9s cubic-bezier(.16,1,.3,1);
+  font-size 1.15s cubic-bezier(.22,1,.36,1),
+  gap 1.15s cubic-bezier(.22,1,.36,1),
+  letter-spacing 1.15s cubic-bezier(.22,1,.36,1);
 }
 .topbar .brand img{
  transition:
-  width .9s cubic-bezier(.16,1,.3,1),
-  height .9s cubic-bezier(.16,1,.3,1),
-  border-radius .9s cubic-bezier(.16,1,.3,1);
+  width 1.15s cubic-bezier(.22,1,.36,1),
+  height 1.15s cubic-bezier(.22,1,.36,1),
+  border-radius 1.15s cubic-bezier(.22,1,.36,1);
 }
 .topbar.is-scrolled .brand{gap:7px;font-size:13px;letter-spacing:1.4px}
 .topbar.is-scrolled .brand img{width:28px;height:28px}
-.topbar .actions{transition:gap .9s cubic-bezier(.16,1,.3,1)}
+.topbar .actions{transition:gap 1.15s cubic-bezier(.22,1,.36,1)}
 .topbar.is-scrolled .actions{gap:5px}
 .topbar .iconbtn{
  transition:
-  width .9s cubic-bezier(.16,1,.3,1),
-  height .9s cubic-bezier(.16,1,.3,1),
-  border-radius .9s cubic-bezier(.16,1,.3,1),
-  background-color .65s ease,
-  border-color .65s ease;
+  width 1.15s cubic-bezier(.22,1,.36,1),
+  height 1.15s cubic-bezier(.22,1,.36,1),
+  border-radius 1.15s cubic-bezier(.22,1,.36,1),
+  background-color .9s cubic-bezier(.22,1,.36,1),
+  border-color .9s cubic-bezier(.22,1,.36,1);
 }
 .topbar.is-scrolled .iconbtn{width:36px;height:36px;border-radius:13px}
 @media(prefers-reduced-motion:reduce){
  .topbar,.topbar-backplate,.topbar .brand,.topbar .brand img,.topbar .actions,.topbar .iconbtn{
   transition:none!important;will-change:auto
  }
-}
-/* Halaman autentikasi tanpa kapsul header dan backplate navigasi atas. */
+}/* Halaman autentikasi tanpa kapsul header dan backplate navigasi atas. */
 body.auth-page .topbar,body.auth-page .topbar-backplate{display:none!important}
 body.auth-page .app{padding-top:18px!important}
 </style>
