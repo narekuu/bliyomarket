@@ -489,11 +489,10 @@ let users=get('bl_users',[]);
 let email=String(user.email||'').trim().toLowerCase();
 let account=users.find(x=>String(x.email||'').trim().toLowerCase()===email);
 let saved=get('bl_last_profile',null);
-if(!account&&saved&&String(saved.email||'').trim().toLowerCase()===email)account=saved;
-if(account){
- user.photoKey=account.photoKey||user.photoKey||'';
- user.coverKey=account.coverKey||user.coverKey||'';
-}
+if(saved&&String(saved.email||'').trim().toLowerCase()!==email)saved=null;
+user.photoKey=account?.photoKey||user.photoKey||saved?.photoKey||'';
+user.coverKey=account?.coverKey||user.coverKey||saved?.coverKey||'';
+
 if(user.photoKey)await loadMedia(user.photoKey);
 if(user.coverKey)await loadMedia(user.coverKey);
 put('bl_user',user);
