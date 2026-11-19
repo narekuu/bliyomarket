@@ -1017,16 +1017,19 @@ async function loadCloudflareSyncStatus(){
   if(error)throw error;
   const d=data||{},items=Array.isArray(d.recent)?d.recent:[];
   const fmt=v=>v?new Date(v).toLocaleString('id-ID'):'—';
-  panel.innerHTML=\`
-   <div class="stats">
-    <div class="stat"><span>Menunggu</span><strong>\${Number(d.pending||0)}</strong></div>
-    <div class="stat"><span>Terkirim</span><strong>\${Number(d.delivered||0)}</strong></div>
-    <div class="stat"><span>Dalam retry</span><strong>\${Number(d.retrying||0)}</strong></div>
-   </div>
-   <div class="row" style="margin:16px 0"><span class="muted">Perubahan terakhir</span><strong style="font-size:11px">\${fmt(d.last_event_at)}</strong></div>
-   <div class="section-head"><h2>Aktivitas terbaru</h2><span class="muted">\${items.length} catatan</span></div>
-   \${items.map(x=>\`<div class="admin-item"><div class="grow"><strong>\${esc(x.table||'—')} · \${esc(x.event||'—')}</strong><small>\${esc(x.status)} · Percobaan: \${Number(x.attempts||0)} · \${fmt(x.created_at)}</small>\${x.last_error?\`<small class="danger">\${esc(x.last_error)}</small>\`:''}</div>\${x.sent_at?'<span class="status Selesai">Terkirim</span>':x.last_error?'<span class="status Ditolak">Retry</span>':'<span class="status">Proses</span>'}</div>\`).join('')||'<div class="empty">Belum ada aktivitas sinkronisasi.</div>'}
-   <p class="upload-note">Pemeriksaan manual. Antrean diproses otomatis setiap 10 detik. Data yang tertahan akan dicoba ulang secara bertahap.</p>\`;
+  const rows=items.map(x=>{
+   const status=esc(x.status||'Menunggu');
+   const badge=x.sent_at?'<span class="status Selesai">Terkirim</span>':x.last_error?'<span class="status Ditolak">Retry</span>':'<span class="status">Proses</span>';
+   return '<div class="admin-item"><div class="grow"><strong>'+esc(x.table||'—')+' · '+esc(x.event||'—')+'</strong><small>'+status+' · Percobaan: '+Number(x.attempts||0)+' · '+fmt(x.created_at)+'</small>'+(x.last_error?'<small class="danger">'+esc(x.last_error)+'</small>':'')+'</div>'+badge+'</div>';
+  }).join('');
+  panel.innerHTML='<div class="stats">'+
+   '<div class="stat"><span>Menunggu</span><strong>'+Number(d.pending||0)+'</strong></div>'+
+   '<div class="stat"><span>Terkirim</span><strong>'+Number(d.delivered||0)+'</strong></div>'+
+   '<div class="stat"><span>Dalam retry</span><strong>'+Number(d.retrying||0)+'</strong></div></div>'+
+   '<div class="row" style="margin:16px 0"><span class="muted">Perubahan terakhir</span><strong style="font-size:11px">'+fmt(d.last_event_at)+'</strong></div>'+
+   '<div class="section-head"><h2>Aktivitas terbaru</h2><span class="muted">'+items.length+' catatan</span></div>'+
+   (rows||'<div class="empty">Belum ada aktivitas sinkronisasi.</div>')+
+   '<p class="upload-note">Pemeriksaan manual. Antrean diproses otomatis setiap 10 detik. Data yang tertahan akan dicoba ulang secara bertahap.</p>';
  }catch(e){
   panel.innerHTML='<div class="empty">Gagal memuat status: '+esc(e.message||'Kesalahan tidak diketahui')+'</div>';
  }
