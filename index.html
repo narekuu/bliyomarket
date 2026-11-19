@@ -345,7 +345,7 @@ async function loadOrdersRemote(){
 async function adminApi(action,payload={}){
  const {data:{session}}=await supabaseClient.auth.getSession();
  if(!session?.access_token)throw new Error('Sesi login tidak ditemukan.');
- const response=await fetch('/api/admin-manage',{
+ const response=await fetch('/api/admin-manage'+(action==='status'||action==='list'?'?action='+encodeURIComponent(action):''),{
   method:action==='status'||action==='list'?'GET':'POST',
   headers:{'content-type':'application/json',authorization:'Bearer '+session.access_token},
   ...(action==='status'||action==='list'?{ }:{body:JSON.stringify({action,...payload})}),
