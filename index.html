@@ -244,6 +244,7 @@ let selectedProduct=null,captcha={code:'',expires:0,timer:null};
 let pageToken=0,mediaDB=null,mediaCache={};
 let productCategory='',productSort='popular',orderSearch='';
 let adminUsers=[];
+let adminSearchResult=null,adminSearchQuery='',adminMembers=[];
 
 function persist(){
 put('bl_products',products);put('bl_categories',categories);put('bl_banners',banners);put('bl_orders',orders);put('bl_settings',settings);
@@ -341,12 +342,83 @@ async function loadOrdersRemote(){
  put('bl_orders',orders);
  if(current==='admin'||current==='history')render();
 }
+async function adminApi(action,payload={}){
+ const {data:{session}}=await supabaseClient.auth.getSession();
+ if(!session?.access_token)throw new Error('Sesi login tidak ditemukan.');
+ const response=await fetch('/api/admin-manage',{
+  method:action==='status'||action==='list'?'GET':'POST',
+  headers:{'content-type':'application/json',authorization:'Bearer '+session.access_token},
+  ...(action==='status'||action==='list'?{ }:{body:JSON.stringify({action,...payload})}),
+  ...(action==='status'||action==='list'?{ }:{})
+ });
+ let result={};try{result=await response.json()}catch{}
+ if(!response.ok)throw new Error(result.error||'Permintaan admin gagal.');
+ return result;
+}
+async function checkAdminRole(token){
+ if(user?.id===ADMIN_UID)return true;
+ try{
+  const response=await fetch('/api/admin-manage?action=status',{headers:{authorization:'Bearer '+token},cache:'no-store'});
+  const result=await response.json();
+  return !!(response.ok&&result.isAdmin);
+ }catch(e){console.warn('Verifikasi role admin:',e);return false}
+}
+async function refreshAdminRole(){
+ try{
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(!session?.user||session.user.id===ADMIN_UID)return;
+  const isAdmin=await checkAdminRole(session.access_token);
+  const nextRole=isAdmin?'admin':'user';
+  if(user&&user.id===session.user.id&&user.role!==nextRole){
+   user={...user,role:nextRole};put('bl_user',user);
+   if(!isAdmin&&current==='admin'){current='home';history.replaceState({page:'home'},'','/home')}
+   render();
+   if(isAdmin)loadAdminUsers().catch(e=>console.error(e));
+   toast(isAdmin?'Akses admin diberikan.':'Hak admin telah dicabut.');
+  }
+ }catch(e){console.error('Pemeriksaan hak admin:',e)}
+}
 async function loadAdminUsers(){
  if(user?.role!=='admin')return;
  const {data,error}=await supabaseClient.from('user_profiles').select('id,email,name,created_at').order('created_at',{ascending:false});
  if(error)throw error;
  adminUsers=data||[];
  if(current==='admin'&&adminTab==='users')render();
+}
+async function loadAdminManagement(){
+ if(user?.id!==ADMIN_UID)return;
+ const result=await adminApi('list');
+ adminMembers=result.admins||[];
+ if(current==='admin'&&adminTab==='admins')render();
+}
+async function searchAdminAccount(){
+ if(user?.id!==ADMIN_UID)return;
+ const input=$('#adminEmailSearch');
+ adminSearchQuery=(input?.value||'').trim().toLowerCase();
+ if(!adminSearchQuery)return toast('Masukkan email pengguna.');
+ const button=$('#adminSearchBtn');if(button){button.disabled=true;button.textContent='Mencari...'}
+ try{
+  const result=await adminApi('search',{email:adminSearchQuery});
+  adminSearchResult=result.user||null;
+  render();
+ }catch(e){adminSearchResult=null;render();toast(e.message)}
+}
+function addAdminAccount(id){
+ if(user?.id!==ADMIN_UID)return toast('Hanya Owner yang bisa menambah admin.');
+ const target=adminSearchResult;if(!target||target.id!==id)return;
+ if(target.isOwner)return toast('Akun Owner tidak bisa diubah.');
+ if(target.isAdmin)return toast('Akun ini sudah menjadi admin.');
+ confirmDialog('Jadikan Admin?','Yakin ingin memberikan hak admin kepada '+target.email+'? Pengguna ini akan dapat mengelola toko, tetapi tidak dapat mengatur admin lain.',async()=>{
+  try{await adminApi('add',{user_id:id});toast('Hak admin berhasil diberikan.');adminSearchResult={...target,isAdmin:true};await loadAdminManagement();render()}
+  catch(e){toast('Gagal menambah admin: '+e.message)}
+ });
+}
+function removeAdminAccount(id,email){
+ if(user?.id!==ADMIN_UID)return toast('Hanya Owner yang bisa mencabut admin.');
+ confirmDialog('Cabut Hak Admin?','Yakin ingin mencabut hak admin '+email+'? Akunnya tetap ada dan akan kembali menjadi User.',async()=>{
+  try{await adminApi('remove',{user_id:id});toast('Hak admin berhasil dicabut.');adminSearchResult=adminSearchResult?.id===id?{...adminSearchResult,isAdmin:false}:adminSearchResult;await loadAdminManagement();render()}
+  catch(e){toast('Gagal mencabut admin: '+e.message)}
+ });
 }
 function startSharedRealtime(){
  supabaseClient.channel('bliyo-shared-store')
@@ -362,7 +434,7 @@ function startSharedRealtime(){
   if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.error('BLIYO Realtime gagal tersambung:',error);
  });
  clearInterval(maintenancePollTimer);
- maintenancePollTimer=setInterval(refreshSiteControl,20000);
+ maintenancePollTimer=setInterval(()=>{refreshSiteControl();refreshAdminRole()},15000);
 }
 async function refreshSiteControl(){
  try{
@@ -376,7 +448,7 @@ async function refreshSiteControl(){
  }catch(e){console.error('Status maintenance:',e)}
 }
 async function saveMaintenanceSettings(enabled){
- if(user?.id!==ADMIN_UID)return toast('Akses admin diperlukan.');
+ if(user?.role!=='admin')return toast('Akses admin diperlukan.');
  const message=$('#maintenanceMessage')?.value.trim()||'BLIYO MARKET sedang dalam pemeliharaan. Silakan kembali beberapa saat lagi.';
  const btn=$('#maintenanceToggleBtn');
  if(btn){btn.disabled=true;btn.textContent='Menyimpan...'}
@@ -833,15 +905,15 @@ put('bl_users',get('bl_users',[]).filter(u=>u.email!==email));
 }
 if(!data?.user)return toast('Login belum berhasil. Coba lagi.');
 if(email===ADMIN_EMAIL&&data.user.id!==ADMIN_UID){await supabaseClient.auth.signOut();return toast('Akun ini tidak memiliki izin admin BLIYO.');}
-const isAdmin=data.user.id===ADMIN_UID;
+const isAdmin=data.user.id===ADMIN_UID||await checkAdminRole(data.session?.access_token);
 const {data:profile}=isAdmin?{data:null}:await supabaseClient.from('user_profiles').select('name').eq('id',data.user.id).maybeSingle();
 let savedProfile=get('bl_last_profile',null);
 let legacyProfile=migratedLegacy||get('bl_users',[]).find(u=>String(u.email||'').trim().toLowerCase()===email.toLowerCase());
 if(!legacyProfile&&savedProfile&&String(savedProfile.email||'').trim().toLowerCase()===email.toLowerCase())legacyProfile=savedProfile;
-user={id:data.user.id,name:isAdmin?'Administrator':profile?.name||data.user.user_metadata?.name||legacyProfile?.name||'Pengguna',email,role:isAdmin?'admin':'user',photoKey:legacyProfile?.photoKey||'',coverKey:legacyProfile?.coverKey||''};
+user={id:data.user.id,name:data.user.id===ADMIN_UID?'Administrator':profile?.name||data.user.user_metadata?.name||legacyProfile?.name||'Pengguna',email,role:isAdmin?'admin':'user',photoKey:legacyProfile?.photoKey||'',coverKey:legacyProfile?.coverKey||''};
 put('bl_user',user);setSession();
 await restoreProfileMedia();
-if(isAdmin)await loadAdminUsers().catch(e=>console.error(e));
+if(isAdmin){await loadAdminUsers().catch(e=>console.error(e));if(user.id===ADMIN_UID)await loadAdminManagement().catch(e=>console.error(e));}
 await loadOrdersRemote().catch(e=>console.error('Pesanan:',e));
 clearInterval(captchaTimer);navigate('home');toast(isAdmin?'Login admin berhasil.':'Login berhasil.');
 }
@@ -1055,7 +1127,7 @@ return `<div class="admin-heading row" style="margin-bottom:20px;flex-wrap:wrap"
 }
 function renderAdmin(){
 return `<section class="fade">${adminHeader()}<div class="admin-tabs">
-${[['overview','Ringkasan'],['sync','Sinkronisasi'],['products','Produk'],['categories','Kategori'],['banners','Banner'],['orders','Pesanan'],['users','Pengguna'],['settings','Pengaturan']].map(([k,v])=>`<button class="admin-tab ${adminTab===k?'active':''}" onclick="adminTab='${k}';render()">${v}</button>`).join('')}
+${[['overview','Ringkasan'],['sync','Sinkronisasi'],['products','Produk'],['categories','Kategori'],['banners','Banner'],['orders','Pesanan'],['users','Pengguna'],...(user?.id===ADMIN_UID?[['admins','Manajemen Admin']]:[]),['settings','Pengaturan']].map(([k,v])=>`<button class="admin-tab ${adminTab===k?'active':''}" onclick="adminTab='${k}';render()">${v}</button>`).join('')}
 </div><div>${adminContent()}</div></section>`;
 }
 
@@ -1134,6 +1206,21 @@ if(adminTab==='orders')return `<div class="section-head"><h2>Manajemen pesanan</
 
 if(adminTab==='users')return `<div class="section-head"><div><h2>Pengguna terdaftar</h2><p class="muted">Akun pelanggan yang terhubung ke Supabase Auth.</p></div><strong>${adminUsers.length} akun</strong></div>
 <div class="panel">${adminUsers.map(u=>`<div class="admin-item"><div class="grow"><strong>${esc(u.name||'Pengguna')}</strong><small>${esc(u.email)} · Bergabung ${new Date(u.created_at).toLocaleDateString('id-ID')}</small></div><span class="status">User</span></div>`).join('')||'<div class="empty">Belum ada pengguna terdaftar.</div>'}</div>`;
+if(adminTab==='admins'){
+ if(user?.id!==ADMIN_UID)return '<div class="empty">Menu ini khusus Owner.</div>';
+ return `<div class="panel">
+ <div class="row"><div><h2>Manajemen Admin</h2><p class="muted">Cari akun yang sudah terdaftar untuk memberikan atau mencabut akses admin.</p></div><span class="status Selesai">OWNER</span></div>
+ <div class="field"><label>Cari email pengguna</label><div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input class="search" id="adminEmailSearch" type="email" placeholder="user@gmail.com" value="${esc(adminSearchQuery)}" onkeydown="if(event.key==='Enter')searchAdminAccount()"></div></div>
+ <button class="primary" id="adminSearchBtn" style="width:100%;margin-top:10px" onclick="searchAdminAccount()">Cari Pengguna</button>
+ ${adminSearchResult?`<div class="admin-item" style="margin-top:17px"><div class="grow"><strong>${esc(adminSearchResult.name||'Pengguna')}</strong><small>${esc(adminSearchResult.email)}</small></div><span class="status ${adminSearchResult.isOwner?'Selesai':adminSearchResult.isAdmin?'Selesai':''}">${adminSearchResult.isOwner?'Owner':adminSearchResult.isAdmin?'Admin':'User'}</span></div>
+ ${adminSearchResult.isOwner?'<p class="upload-note">Owner utama tidak dapat diubah.</p>':adminSearchResult.isAdmin?'<button class="btn danger" style="width:100%;margin-top:10px" onclick="removeAdminAccount(\''+adminSearchResult.id+'\',\''+esc(adminSearchResult.email)+'\')">Cabut Hak Admin</button>':'<button class="primary" style="width:100%;margin-top:10px" onclick="addAdminAccount(\''+adminSearchResult.id+'\')">＋ Add Admin</button>'}`:'<p class="upload-note">Hasil pencarian akun akan tampil di sini.</p>'}
+ </div>
+ <div class="section-head" style="margin-top:22px"><h2>Daftar Admin</h2><strong>${adminMembers.length+1} admin</strong></div>
+ <div class="panel">
+ <div class="admin-item"><div class="grow"><strong>Owner BLIYO MARKET</strong><small>${esc(ADMIN_EMAIL)}</small></div><span class="status Selesai">Owner</span></div>
+ ${adminMembers.map(a=>`<div class="admin-item"><div class="grow"><strong>${esc(a.email)}</strong><small>Admin tambahan · Ditambahkan ${new Date(a.created_at).toLocaleDateString('id-ID')}</small></div><span class="status Selesai">Admin</span><button class="btn danger" onclick="removeAdminAccount('${a.user_id}','${esc(a.email)}')">Cabut</button></div>`).join('')||'<div class="empty">Belum ada admin tambahan.</div>'}
+ </div><p class="upload-note">Admin tambahan dapat mengelola toko, tetapi hanya Owner yang dapat mengatur daftar admin.</p>`;
+}
 if(adminTab==='settings')return `<div class="panel"><h2>Pengaturan toko</h2>
 <div class="field"><label>Nama toko</label><input id="storeName" value="${esc(settings.store)}"></div>
 <div class="field"><label>Nomor WhatsApp admin</label><input id="storePhone" value="${esc(settings.phone)}"></div>
@@ -1284,7 +1371,7 @@ function maintenancePage(){
 }
 function render(){
 clearInterval(bannerTimer);clearTimeout(bannerTransitionTimer);
-const blocked=!!siteControl.maintenance_enabled&&user?.id!==ADMIN_UID&&current!=='login';
+const blocked=!!siteControl.maintenance_enabled&&user?.role!=='admin'&&current!=='login';
 let isAdmin=current==='admin'||blocked;
 $('#bottomNav').classList.toggle('hidden',isAdmin);
 document.querySelectorAll('.navitem').forEach(el=>el.classList.toggle('active',el.dataset.page===current));
@@ -1306,7 +1393,7 @@ try{await openMediaDB()}catch(e){console.error('Media DB:',e)}
 const {data:{session}}=await supabaseClient.auth.getSession();
 user=null;
 if(session?.user){
-const authUser=session.user,isAdmin=authUser.id===ADMIN_UID;
+const authUser=session.user,isAdmin=authUser.id===ADMIN_UID||await checkAdminRole(session.access_token);
 const {data:profile}=isAdmin?{data:null}:await supabaseClient.from('user_profiles').select('name').eq('id',authUser.id).maybeSingle();
 let email=String(authUser.email||'').trim().toLowerCase();
 let local=get('bl_users',[]).find(x=>String(x.email||'').trim().toLowerCase()===email);
@@ -1321,7 +1408,7 @@ await loadSharedData();startSharedRealtime();
 if(user){
 await restoreProfileMedia();
 await loadOrdersRemote().catch(e=>console.error('Pesanan online:',e));
-if(user.role==='admin')await loadAdminUsers().catch(e=>console.error('Pengguna online:',e));
+if(user.role==='admin'){await loadAdminUsers().catch(e=>console.error('Pengguna online:',e));if(user.id===ADMIN_UID)await loadAdminManagement().catch(e=>console.error('Manajemen admin:',e));}
 }else await restoreLastProfileMedia();
 for(let p of products){if(p.imageKey)await loadMedia(p.imageKey)}
 for(let b of banners){if(b&&typeof b==='object'&&b.key)await loadMedia(b.key)}
