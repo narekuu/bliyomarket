@@ -227,6 +227,8 @@ const MAX_MEDIA=25*1024*1024;
 
 let user=get('bl_user',null);
 let lastProfile=get('bl_last_profile',null);
+let pendingVerificationEmail=get('bl_pending_verification_email','');
+let lastVerificationResendAt=0;
 /* Admin diverifikasi melalui Supabase Auth. */
 let products=get('bl_products',[
 {id:1,name:'Spotify Premium',category:'Aplikasi Premium',price:15000,minQty:1,maxQty:99,rating:4.9,sold:120,image:'https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=700',description:'Akses musik premium dengan pengalaman mendengarkan yang nyaman.'},
@@ -603,7 +605,7 @@ case 'categories': body=title()+subtitle()+grid(8,2,'height:105px');break;
 case 'products': body=title()+subtitle()+block('sk-panel','height:48px;margin:16px 0')+grid(6,2,'height:225px');break;
 case 'history': body=title()+subtitle()+Array.from({length:5},()=>row()).join('');break;
 case 'profile': body=block('sk-banner','height:150px;margin:8px 0 0')+`<div style="display:flex;align-items:center;gap:14px;margin:-28px 0 22px 18px;position:relative">${block('','width:76px;height:76px;border-radius:50%;border:5px solid var(--bg)') }<div style="flex:1;margin-top:28px">${block('sk-line','width:55%')}${block('sk-line','width:32%;height:9px')}</div></div>`+grid(3,3,'height:75px')+panel(145)+row(false)+row(false);break;
-case 'login': case 'register': body=`<div style="max-width:440px;margin:25px auto">${block('','width:65px;height:65px;border-radius:20px;margin:0 auto 25px')}${title()}${subtitle()}${panel(48)}${panel(48)}${panel(48)}</div>`;break;
+case 'login': case 'register': case 'verify': body=`<div style="max-width:440px;margin:25px auto">${block('','width:65px;height:65px;border-radius:20px;margin:0 auto 25px')}${title()}${subtitle()}${panel(48)}${panel(48)}${panel(48)}</div>`;break;
 case 'editprofile': body=title()+panel(145)+row(false)+panel(48)+panel(48)+panel(48);break;
 case 'password': body=title()+subtitle()+panel(48)+panel(48)+panel(48);break;
 case 'admin': body=title()+subtitle()+grid(3,3,'height:92px')+panel(190)+title()+Array.from({length:4},()=>row()).join('');break;
@@ -614,7 +616,7 @@ return `<div aria-label="Memuat halaman ${page}" style="padding-bottom:24px">${b
 }
 
 /* ROUTING */
-const routeNames={home:'home',categories:'categories',products:'products',history:'history',profile:'profile',login:'login',register:'register',editprofile:'editprofile',password:'password',admin:'admin',search:'search'};
+const routeNames={home:'home',categories:'categories',products:'products',history:'history',profile:'profile',login:'login',register:'register',verify:'verify',editprofile:'editprofile',password:'password',admin:'admin',search:'search'};
 function pageFromURL(){
 let path=location.pathname.split('/').filter(Boolean).pop();
 if(routeNames[path])return path;
@@ -850,11 +852,33 @@ function registerPage(){
 return `<section class="auth fade"><div class="auth-logo"><h1>BLIYO</h1><p class="eyebrow">BUAT AKUN BARU</p></div>
 <div class="panel"><h2>Daftar</h2><p class="muted">Buat akun untuk mulai memesan.</p>
 <div class="field"><label>Nama</label><input id="regName" placeholder="Nama lengkap"></div>
-<div class="field"><label>Email</label><input id="regEmail" type="email" placeholder="nama@email.com"></div>
-<div class="field"><label>Password</label><input id="regPassword" type="password" placeholder="Minimal 6 karakter"></div>
+<div class="field"><label>Email aktif</label><input id="regEmail" type="email" autocomplete="email" placeholder="nama@email.com"></div>
+<div class="field"><label>Password</label><input id="regPassword" type="password" autocomplete="new-password" placeholder="Minimal 6 karakter"></div>
 ${captchaHTML()}
+<p class="muted" style="margin-top:12px">Gunakan email yang bisa kamu buka. Tautan konfirmasi akan dikirim sebelum akun dapat digunakan.</p>
 <button class="primary" style="width:100%;margin-top:20px" onclick="register()">Daftar</button>
 <p class="muted" style="text-align:center;margin-top:19px">Sudah punya akun? <button class="link" onclick="navigate('login')">Login</button></p></div></section>`;
+}
+
+function verificationPage(){
+ const email=pendingVerificationEmail||'';
+ return `<section class="auth fade"><div class="auth-logo"><h1>BLIYO</h1><p class="eyebrow">VERIFIKASI EMAIL</p></div><div class="panel"><div style="width:58px;height:58px;border-radius:19px;background:var(--glass-strong);display:grid;place-items:center;margin-bottom:17px;color:var(--accent)"><svg viewBox="0 0 24 24" style="width:29px;height:29px"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div><h2>Periksa email kamu</h2><p class="muted" style="margin-top:8px">Kami sudah memproses pendaftaran untuk <b>${esc(email||'alamat email kamu')}</b>. Buka email dari BLIYO MARKET, lalu tekan tombol konfirmasi untuk mengaktifkan akun.</p><div class="order-detail" style="margin-top:17px"><strong>Belum menerima email?</strong><p>Periksa folder Inbox, Spam, atau Junk. Pastikan alamat email yang kamu masukkan benar.</p></div><button class="primary" id="resendVerificationBtn" style="width:100%;margin-top:17px" onclick="resendVerificationEmail()">Kirim ulang email konfirmasi</button><button class="btn" style="width:100%;margin-top:10px" onclick="navigate('login')">Kembali ke Login</button><p class="muted" style="text-align:center;margin-top:14px">Setelah menekan tautan konfirmasi, kamu bisa kembali dan login.</p></div></section>`;
+}
+async function resendVerificationEmail(){
+ const email=pendingVerificationEmail;
+ if(!email)return toast('Email pendaftaran tidak ditemukan. Silakan daftar kembali.');
+ const wait=60000-(Date.now()-lastVerificationResendAt);
+ if(wait>0)return toast('Tunggu '+Math.ceil(wait/1000)+' detik sebelum mengirim ulang.');
+ const btn=$('#resendVerificationBtn');if(btn){btn.disabled=true;btn.textContent='Mengirim...'}
+ try{
+  const {error}=await supabaseClient.auth.resend({type:'signup',email,options:{emailRedirectTo:'https://bliyomarket.vercel.app/'}});
+  if(error)throw error;
+  lastVerificationResendAt=Date.now();
+  toast('Email konfirmasi dikirim ulang. Periksa Inbox dan Spam.');
+ }catch(e){
+  const m=String(e.message||'');
+  toast(/rate.?limit|too many requests|email rate/i.test(m)?'Batas pengiriman email tercapai. Tunggu sebentar lalu coba lagi.':'Gagal mengirim email: '+m);
+ }finally{if(btn){btn.disabled=false;btn.textContent='Kirim ulang email konfirmasi'}}
 }
 
 /* MIGRASI AKUN LAMA: ANTREAN AMAN TANPA MENYIMPAN PASSWORD */
@@ -876,8 +900,17 @@ let {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pa
 let migratedLegacy=null;
 if(!error)clearMigrationState(email);
 if(error){
+const authMessage=String(error.message||'').toLowerCase();
+if(error.code==='email_not_confirmed'||authMessage.includes('email not confirmed')||authMessage.includes('email_not_confirmed')){
+ pendingVerificationEmail=email;put('bl_pending_verification_email',email);navigate('verify');
+ return toast('Email belum dikonfirmasi. Periksa Inbox atau Spam terlebih dahulu.');
+}
+if(/rate.?limit|too many requests|over_email_send_rate_limit/i.test(authMessage))return toast('Terlalu banyak percobaan. Tunggu beberapa saat sebelum mencoba lagi.');
 migratedLegacy=get('bl_users',[]).find(u=>u.email===email&&u.password===pass);
-if(!migratedLegacy)return toast('Email atau password salah.');
+if(!migratedLegacy){
+ if(/invalid login credentials|invalid_credentials|email or password/i.test(authMessage))return toast('Email atau password salah.');
+ return toast('Login gagal: '+(error.message||'Periksa koneksi lalu coba lagi.'));
+}
 const queued=migrationQueue()[email];
 if(queued?.state==='waiting_rate_limit'&&queued.nextRetryAt>Date.now()){
 const mins=Math.ceil((queued.nextRetryAt-Date.now())/60000);
@@ -925,12 +958,26 @@ else{sessionStorage.setItem('bl_user',JSON.stringify(user));localStorage.removeI
 async function register(){
 if(!checkCaptcha())return;
 let name=$('#regName').value.trim(),email=$('#regEmail').value.trim().toLowerCase(),password=$('#regPassword').value;
-if(!name||!email||!email.includes('@')||password.length<6)return toast('Periksa kembali data pendaftaran.');
+if(!name||!email||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email)||password.length<6)return toast('Masukkan nama, email dengan format benar, dan password minimal 6 karakter.');
 const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{name},emailRedirectTo:'https://bliyomarket.vercel.app/'}});
-if(error)return toast('Pendaftaran gagal: '+error.message);
-if(!data.session){clearInterval(captchaTimer);toast('Pendaftaran berhasil. Periksa email untuk konfirmasi, lalu login.');navigate('login');return;}
+if(error){
+ const m=String(error.message||'');
+ if(/rate.?limit|too many requests|over_email_send_rate_limit/i.test(m))return toast('Pengiriman email sedang dibatasi. Tunggu sebelum mencoba daftar lagi.');
+ return toast('Pendaftaran gagal: '+m);
+}
+if(!data.session){
+ pendingVerificationEmail=email;put('bl_pending_verification_email',email);
+ clearInterval(captchaTimer);navigate('verify');
+ toast('Pendaftaran diproses. Konfirmasi email untuk mengaktifkan akun.');return;
+}
+if(!data.user?.email_confirmed_at){
+ await supabaseClient.auth.signOut();
+ pendingVerificationEmail=email;put('bl_pending_verification_email',email);
+ clearInterval(captchaTimer);navigate('verify');
+ toast('Konfirmasi email diperlukan sebelum akun digunakan.');return;
+}
 user={id:data.user.id,name,email,role:'user',photoKey:'',coverKey:''};put('bl_user',user);setSession();saveLastProfile();
-clearInterval(captchaTimer);navigate('home');toast('Akun berhasil dibuat dan tersimpan online!');
+clearInterval(captchaTimer);navigate('home');toast('Akun berhasil dibuat dan email terverifikasi.');
 }
 
 /* HISTORY */
@@ -1375,7 +1422,7 @@ const blocked=!!siteControl.maintenance_enabled&&user?.role!=='admin'&&current!=
 let isAdmin=current==='admin'||blocked;
 $('#bottomNav').classList.toggle('hidden',isAdmin);
 document.querySelectorAll('.navitem').forEach(el=>el.classList.toggle('active',el.dataset.page===current));
-let pages={home:homePage,categories:categoriesPage,products:productsPage,history:historyPage,profile:profilePage,login:loginPage,register:registerPage,editprofile:editProfilePage,password:passwordPage,admin:renderAdmin,search:searchPage};
+let pages={home:homePage,categories:categoriesPage,products:productsPage,history:historyPage,profile:profilePage,login:loginPage,register:registerPage,verify:verificationPage,editprofile:editProfilePage,password:passwordPage,admin:renderAdmin,search:searchPage};
 $('#view').innerHTML=blocked?maintenancePage():(pages[current]||homePage)();
 $('#view').setAttribute('aria-busy','false');
 $('#view').classList.remove('page-enter');void $('#view').offsetWidth;$('#view').classList.add('page-enter');
