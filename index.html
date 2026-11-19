@@ -371,7 +371,7 @@ async function refreshAdminRole(){
   const nextRole=isAdmin?'admin':'user';
   if(user&&user.id===session.user.id&&user.role!==nextRole){
    user={...user,role:nextRole};put('bl_user',user);
-   if(!isAdmin&&current==='admin'){current='home';history.replaceState({page:'home'},'','/home')}
+   if(!isAdmin&&current==='admin'){current='home';adminTab='overview';history.replaceState({page:'home'},'','/home')}
    render();
    if(isAdmin)loadAdminUsers().catch(e=>console.error(e));
    toast(isAdmin?'Akses admin diberikan.':'Hak admin telah dicabut.');
@@ -1123,11 +1123,11 @@ toast('Cadangan Cloudflare selesai. '+summary);
 finally{if(btn){btn.disabled=false;btn.textContent='Cadangkan ke Cloudflare';}}
 }
 function adminHeader(){
-return `<div class="admin-heading row" style="margin-bottom:20px;flex-wrap:wrap"><div><div class="eyebrow">BLIYO MANAGEMENT SYSTEM</div><h1 style="font-size:27px;margin-top:7px">Dashboard Admin</h1><p class="muted">Kelola toko digital BLIYO MARKET.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="backupBtn" onclick="runBackup()">Cadangkan ke Cloudflare</button><button class="btn" onclick="navigate('profile')">Profil ↗</button></div></div>`;
+return `<div class="admin-heading row" style="margin-bottom:20px;flex-wrap:wrap"><div><div class="eyebrow">BLIYO MANAGEMENT SYSTEM</div><h1 style="font-size:27px;margin-top:7px">Dashboard Admin</h1><p class="muted">Kelola toko digital BLIYO MARKET.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">${user?.id===ADMIN_UID?'<button class="btn" id="backupBtn" onclick="runBackup()">Cadangkan ke Cloudflare</button>':''}<button class="btn" onclick="navigate('profile')">Profil ↗</button></div></div>`;
 }
 function renderAdmin(){
 return `<section class="fade">${adminHeader()}<div class="admin-tabs">
-${[['overview','Ringkasan'],['sync','Sinkronisasi'],['products','Produk'],['categories','Kategori'],['banners','Banner'],['orders','Pesanan'],['users','Pengguna'],...(user?.id===ADMIN_UID?[['admins','Manajemen Admin']]:[]),['settings','Pengaturan']].map(([k,v])=>`<button class="admin-tab ${adminTab===k?'active':''}" onclick="adminTab='${k}';render()">${v}</button>`).join('')}
+${[['overview','Ringkasan'],...(user?.id===ADMIN_UID?[['sync','Sinkronisasi']]:[]),['products','Produk'],['categories','Kategori'],['banners','Banner'],['orders','Pesanan'],['users','Pengguna'],...(user?.id===ADMIN_UID?[['admins','Manajemen Admin']]:[]),['settings','Pengaturan']].map(([k,v])=>`<button class="admin-tab ${adminTab===k?'active':''}" onclick="adminTab='${k}';render()">${v}</button>`).join('')}
 </div><div>${adminContent()}</div></section>`;
 }
 
