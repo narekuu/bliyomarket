@@ -1917,10 +1917,11 @@ if(file){
  catch(e){toast('Gagal memindahkan gambar produk ke penyimpanan online: '+e.message);return}
 }
 let data={name,category:$('#pCategory').value,price,minQty:min,maxQty:max,rating:Math.max(0,Math.min(5,Number($('#pRating').value)||5)),description:$('#pDesc').value.trim(),image,imageKey,badgeText:$('#pBadgeText').value.trim().slice(0,18),badgeColor:safeBadgeColor($('#pBadgeColor').value),discountPercent:Math.max(0,Math.min(99,Math.round(Number($('#pDiscount').value)||0)))};
-if(old){Object.assign(old,data);toast('Produk berhasil diperbarui.')}
-else{products.unshift({id:Date.now(),...data,sold:0});toast('Produk berhasil ditambahkan.')}
+if(old){Object.assign(old,data)}
+else{products.unshift({id:Date.now(),...data,sold:0})}
 persist();
-try{await saveProductsRemote()}catch(e){toast('Gagal menyimpan produk online: '+e.message);return}
+try{await saveProductsRemote()}catch(e){toast('Gagal menyimpan produk online: '+e.message+' — perubahan lokal tetap tersimpan, periksa kolom database.');return}
+toast(old?'Produk berhasil diperbarui dan disinkronkan.':'Produk berhasil ditambahkan dan disinkronkan.');
 render();
 }
 function editProduct(id){
