@@ -1383,7 +1383,7 @@ Saya ingin melakukan pemesanan produk di BLIYO MARKET. Berikut adalah detail pes
 Detail Pemesanan
 ID Pesanan: ${orderId}
 Nama: ${user.name}
-Produk: ${p.name}
+Produk: ${p.name}${selectedVariantName?' - '+selectedVariantName:''}
 Harga: ${money(unitPrice)}
 Jumlah: ${qty}`+(additional?`\n\n> Pesan Tambahan:\n\n${additional}`:'')+`\n\nMohon bantuannya untuk memproses pesanan saya. Terima kasih atas perhatian dan pelayanannya, Admin! 🙏`;
 let phone=settings.phone.replace(/\D/g,''),url='https://wa.me/'+phone+'?text='+encodeURIComponent(message);
@@ -1957,7 +1957,7 @@ render();
 }
 function renderVariantRows(items=[]){const host=$('#pVariantRows');if(!host)return;host.innerHTML='';items.forEach(v=>addVariantRow(v))}
 function addVariantRow(v={}){const host=$('#pVariantRows');if(!host)return;const row=document.createElement('div');row.className='variant-editor-row';row.innerHTML='<input class="variant-name" placeholder="Nama paket"><input class="variant-price" type="number" min="0" placeholder="Harga"><input class="variant-discount" type="number" min="0" max="99" value="0" placeholder="Diskon %"><button type="button" class="btn danger">×</button>';row.querySelector('.variant-name').value=v.name||'';row.querySelector('.variant-price').value=v.price??'';row.querySelector('.variant-discount').value=v.discountPercent||0;row.querySelector('button').onclick=()=>row.remove();host.appendChild(row)}
-function readVariantRows(){return [...($('#pVariantRows')?.querySelectorAll('.variant-editor-row')||[])].map(r=>({name:r.querySelector('.variant-name').value.trim(),price:Number(r.querySelector('.variant-price').value),discountPercent:Math.max(0,Math.min(99,Number(r.querySelector('.variant-discount').value)||0))})).filter(v=>v.name||v.price)}
+function readVariantRows(){return [...($('#pVariantRows')?.querySelectorAll('.variant-editor-row')||[])].map(r=>({name:r.querySelector('.variant-name').value.trim(),price:r.querySelector('.variant-price').value===''?NaN:Number(r.querySelector('.variant-price').value),discountPercent:Math.max(0,Math.min(99,Number(r.querySelector('.variant-discount').value)||0))})).filter(v=>v.name||Number.isFinite(v.price))}
 function editProduct(id){
 let p=products.find(x=>x.id===id);if(!p)return;
 $('#pId').value=p.id;$('#pName').value=p.name;$('#pCategory').value=p.category;$('#pCategoryLabel').textContent=p.category;
@@ -2104,7 +2104,7 @@ if(user.role==='admin'){await loadAdminUsers().catch(e=>console.error('Pengguna 
 for(let p of products){if(p.imageKey)await loadMedia(p.imageKey)}
 for(let b of banners){if(b&&typeof b==='object'&&b.key)await loadMedia(b.key)}
 current=pageFromURL();if(current==='product-detail')selectedProductId=Number(new URLSearchParams(location.search).get('id'))||selectedProductId;if(!user&&current==='admin')current='home';
-history.replaceState({page:current},'','/'+current);render();
+history.replaceState({page:current,productId:selectedProductId},'',current==='product-detail'?('/product-detail?id='+encodeURIComponent(selectedProductId||'')):'/'+current);render();
 }
 init();
 </script>
