@@ -397,48 +397,103 @@ body.dark .nav-indicator{background:linear-gradient(145deg,rgba(220,240,255,.3),
 }
 
 
-/* FIX: MULTI-TONE OCEAN LIQUID GLASS — STATIC WALLPAPER */
-html{
-  min-height:100%;
-  background:#398fd4;
+/* ABSTRACT OCEAN FLOW — FIXED LAYERED ANIMATED WALLPAPER */
+html,body{min-height:100%;background:#398fd4}
+html:has(body.dark),body.dark{background:#0b2850}
+body{
+ position:relative;
+ isolation:isolate;
+ min-height:100vh;
+ min-height:100svh;
+ background:
+  radial-gradient(ellipse at 8% 25%,#b5f3e5 0%,transparent 34%),
+  radial-gradient(ellipse at 90% 15%,#1685ed 0%,transparent 42%),
+  radial-gradient(ellipse at 45% 95%,#a6e8e0 0%,transparent 40%),
+  linear-gradient(135deg,#6cc4dc,#398fd4 48%,#0646a4)!important;
+ background-attachment:fixed!important;
 }
-html:has(body.dark){background:#0b2850}
-html::before{display:none!important}
-body:before,body:after{content:none!important}
-body,body.dark{
-  position:relative;
-  isolation:isolate;
-  min-height:100vh;
-  min-height:100svh;
-  background:transparent!important;
+body.dark{
+ background:
+  radial-gradient(ellipse at 8% 25%,rgba(36,157,167,.25) 0%,transparent 36%),
+  radial-gradient(ellipse at 90% 15%,rgba(20,103,194,.34) 0%,transparent 42%),
+  radial-gradient(ellipse at 45% 95%,rgba(37,123,151,.2) 0%,transparent 40%),
+  linear-gradient(135deg,#102d4b,#0b2850 48%,#06152e)!important;
 }
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  z-index:-1;
-  pointer-events:none;
-  background:
-    radial-gradient(ellipse 48% 34% at 7% 12%,rgba(218,255,242,.9) 0%,rgba(181,243,229,.46) 48%,transparent 100%),
-    radial-gradient(ellipse 46% 38% at 94% 10%,rgba(255,205,183,.58) 0%,rgba(255,220,204,.2) 48%,transparent 100%),
-    radial-gradient(ellipse 55% 42% at 88% 82%,rgba(190,177,255,.46) 0%,rgba(166,183,245,.18) 52%,transparent 100%),
-    radial-gradient(ellipse 68% 44% at 40% 105%,rgba(166,232,224,.72) 0%,rgba(91,185,213,.25) 55%,transparent 100%),
-    radial-gradient(ellipse 42% 30% at 48% 48%,rgba(255,255,255,.22) 0%,transparent 100%),
-    linear-gradient(128deg,#83d6dc 0%,#55b3dc 29%,#398fd4 55%,#347fc1 78%,#245fa9 100%);
+.wallpaper{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ pointer-events:none;
+ z-index:0;
 }
-body.dark::before{
-  background:
-    radial-gradient(ellipse 48% 34% at 7% 12%,rgba(75,167,151,.24) 0%,transparent 100%),
-    radial-gradient(ellipse 46% 38% at 94% 10%,rgba(180,111,103,.22) 0%,transparent 100%),
-    radial-gradient(ellipse 55% 42% at 88% 82%,rgba(116,104,181,.25) 0%,transparent 100%),
-    radial-gradient(ellipse 68% 44% at 40% 105%,rgba(37,123,151,.3) 0%,transparent 100%),
-    radial-gradient(ellipse 42% 30% at 48% 48%,rgba(130,171,191,.1) 0%,transparent 100%),
-    linear-gradient(128deg,#16465d 0%,#123c59 29%,#0b2850 55%,#102746 78%,#111e3c 100%);
+.wallpaper .wave{
+ position:absolute;
+ width:130%;
+ height:75%;
+ border-radius:50%;
+ border-top:2px solid rgba(255,255,255,.28);
+ background:linear-gradient(160deg,rgba(255,255,255,.16),transparent 45%,rgba(0,65,180,.13));
+ will-change:transform;
+}
+.wallpaper .wave.one{
+ top:30%;left:-25%;
+ transform:rotate(-27deg);
+ animation:wallWaveOne 18s ease-in-out infinite alternate;
+}
+.wallpaper .wave.two{
+ top:55%;left:8%;
+ opacity:.65;
+ transform:rotate(-27deg);
+ animation:wallWaveTwo 22s ease-in-out infinite alternate;
+}
+.wallpaper .light{
+ position:absolute;
+ width:90%;height:70%;top:-25%;left:15%;
+ background:radial-gradient(ellipse,rgba(255,255,255,.20),rgba(195,255,240,.06) 45%,transparent 72%);
+ animation:wallLightMove 16s ease-in-out infinite alternate;
+}
+.wallpaper .shade{
+ position:absolute;inset:60% 0 0;
+ background:linear-gradient(to bottom,transparent,rgba(0,45,130,.13));
+}
+body.dark .wallpaper .wave{
+ border-top-color:rgba(225,245,255,.16);
+ background:linear-gradient(160deg,rgba(190,230,255,.09),transparent 45%,rgba(0,25,75,.2));
+}
+body.dark .wallpaper .light{
+ background:radial-gradient(ellipse,rgba(180,225,255,.12),rgba(95,190,190,.035) 45%,transparent 72%);
+}
+body.dark .wallpaper .shade{
+ background:linear-gradient(to bottom,transparent,rgba(0,8,35,.28));
+}
+.app{position:relative;z-index:1}
+.bottomnav{z-index:20}
+@keyframes wallWaveOne{
+ from{transform:translate(-2%,0) rotate(-27deg)}
+ to{transform:translate(3%,-5%) rotate(-21deg)}
+}
+@keyframes wallWaveTwo{
+ from{transform:translate(0,0) rotate(-27deg)}
+ to{transform:translate(-5%,-4%) rotate(-33deg)}
+}
+@keyframes wallLightMove{
+ from{transform:translateX(-3%) scale(1)}
+ to{transform:translateX(8%) scale(1.15)}
+}
+@media(prefers-reduced-motion:reduce){
+ .wallpaper *{animation:none!important}
 }
 </style>
 </head>
 
 <body>
+<div class="wallpaper" aria-hidden="true">
+ <div class="light"></div>
+ <div class="wave one"></div>
+ <div class="wave two"></div>
+ <div class="shade"></div>
+</div>
+
 <div class="app">
 <header class="topbar glass">
 <div class="brand">
