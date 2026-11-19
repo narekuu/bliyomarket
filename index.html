@@ -397,15 +397,13 @@ body.dark .nav-indicator{background:linear-gradient(145deg,rgba(220,240,255,.3),
 }
 
 
-/* FIX: ORIGINAL OCEAN LIQUID GLASS COLORS — STATIC WALLPAPER */
+/* FIX: LAYERED OCEAN LIQUID GLASS — STATIC WALLPAPER */
 html{
   min-height:100%;
   background:#398fd4;
 }
 html:has(body.dark){background:#0b2850}
 html::before{display:none!important}
-
-/* Nonaktifkan ornamen gelombang lama agar latar tidak ikut bergerak */
 body:before,body:after{content:none!important}
 body,body.dark{
   position:relative;
@@ -421,17 +419,19 @@ body::before{
   z-index:-1;
   pointer-events:none;
   background:
-    radial-gradient(ellipse at 8% 25%,#b5f3e5 0%,transparent 34%),
-    radial-gradient(ellipse at 90% 15%,#1685ed 0%,transparent 42%),
-    radial-gradient(ellipse at 45% 95%,#a6e8e0 0%,transparent 40%),
-    linear-gradient(135deg,#6cc4dc,#398fd4 48%,#0646a4);
+    radial-gradient(ellipse 58% 36% at 7% 16%,rgba(213,255,245,.86) 0%,rgba(181,243,229,.52) 38%,transparent 100%),
+    radial-gradient(ellipse 54% 42% at 93% 13%,rgba(28,151,239,.82) 0%,rgba(22,133,237,.35) 48%,transparent 100%),
+    radial-gradient(ellipse 70% 46% at 42% 104%,rgba(166,232,224,.72) 0%,rgba(91,185,213,.28) 52%,transparent 100%),
+    radial-gradient(ellipse 40% 30% at 78% 72%,rgba(126,206,239,.38) 0%,transparent 100%),
+    linear-gradient(128deg,#83d6dc 0%,#55b3dc 30%,#398fd4 57%,#176bb8 82%,#0646a4 100%);
 }
 body.dark::before{
   background:
-    radial-gradient(ellipse at 8% 25%,rgba(36,157,167,.25),transparent 36%),
-    radial-gradient(ellipse at 90% 15%,rgba(20,103,194,.34),transparent 42%),
-    radial-gradient(ellipse at 45% 95%,rgba(37,123,151,.2),transparent 40%),
-    linear-gradient(135deg,#102d4b,#0b2850 48%,#06152e);
+    radial-gradient(ellipse 58% 36% at 7% 16%,rgba(36,157,167,.30) 0%,transparent 100%),
+    radial-gradient(ellipse 54% 42% at 93% 13%,rgba(20,103,194,.42) 0%,transparent 100%),
+    radial-gradient(ellipse 70% 46% at 42% 104%,rgba(37,123,151,.30) 0%,transparent 100%),
+    radial-gradient(ellipse 40% 30% at 78% 72%,rgba(52,111,153,.22) 0%,transparent 100%),
+    linear-gradient(128deg,#16465d 0%,#123c59 30%,#0b2850 57%,#082044 82%,#06152e 100%);
 }
 </style>
 </head>
