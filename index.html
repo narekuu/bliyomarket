@@ -623,6 +623,23 @@ body.dark .admin-drawer-link{color:#d6e6f4}
 body.dark .admin-drawer-link .drawer-icon,body.dark .admin-drawer-foot{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.13);color:#d6e6f4}
 body.dark .admin-menu-trigger{background:rgba(20,38,57,.82);color:#eff7ff;border-color:rgba(255,255,255,.2)}
 @media(min-width:760px){.admin-drawer{left:20px;top:20px;bottom:20px;width:320px}}
+/* Header dynamic: sedikit mengecil saat konten digulir */
+.topbar{
+ transition:width .32s cubic-bezier(.2,.8,.2,1),height .32s cubic-bezier(.2,.8,.2,1),top .32s cubic-bezier(.2,.8,.2,1),transform .32s cubic-bezier(.2,.8,.2,1),border-radius .32s ease,box-shadow .32s ease!important;
+ transform:translateX(-50%) scale(1);
+ transform-origin:top center;
+}
+.topbar.is-scrolled{
+ width:calc(100% - 54px)!important;
+ height:56px!important;
+ top:6px!important;
+ border-radius:22px!important;
+ transform:translateX(-50%) scale(.985)!important;
+ box-shadow:0 9px 26px rgba(0,25,65,.16),inset 0 1px 1px rgba(255,255,255,.5)!important;
+}
+.topbar.is-scrolled .brand img{width:33px;height:33px;transition:width .32s ease,height .32s ease}
+.topbar .brand img{transition:width .32s ease,height .32s ease}
+@media(prefers-reduced-motion:reduce){.topbar,.topbar .brand img{transition:none!important}}
 </style>
 </head>
 
@@ -650,7 +667,7 @@ BLIYO MARKET
 </div>
 <script>
 /* Header dipindahkan langsung ke body agar fixed tidak ikut area scroll .app di Android. */
-(()=>{const header=document.querySelector('.topbar');if(header&&header.parentElement!==document.body)document.body.insertBefore(header,document.body.firstChild)})();
+(()=>{const header=document.querySelector('.topbar'),scroller=document.querySelector('.app');if(header&&header.parentElement!==document.body)document.body.insertBefore(header,document.body.firstChild);if(header&&scroller){const update=()=>header.classList.toggle('is-scrolled',scroller.scrollTop>18);scroller.addEventListener('scroll',update,{passive:true});update()}})();
 </script>
 
 <nav class="bottomnav glass" id="bottomNav">
