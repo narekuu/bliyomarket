@@ -1470,7 +1470,7 @@ document.querySelectorAll('.navitem').forEach(el=>el.classList.toggle('active',e
 let pages={home:homePage,categories:categoriesPage,products:productsPage,history:historyPage,profile:profilePage,login:loginPage,register:registerPage,verify:verificationPage,editprofile:editProfilePage,password:passwordPage,admin:renderAdmin,search:searchPage};
 $('#view').innerHTML=blocked?maintenancePage():(pages[current]||homePage)();
 $('#view').setAttribute('aria-busy','false');
-$('#view').classList.remove('page-enter');void $('#view').offsetWidth;$('#view').classList.add('page-enter');
+$('#view').classList.remove('page-exit','page-enter');void $('#view').offsetWidth;$('#view').classList.add('page-enter');
 if(current==='home')startBanners();
 if(current==='admin'&&adminTab==='sync')loadCloudflareSyncStatus();
 if(current==='login'||current==='register')newCaptcha();
