@@ -75,7 +75,8 @@ h1,h2,h3{letter-spacing:-.7px}
 .category span{font-size:10px;font-weight:700}
 .products{display:block;columns:3;column-gap:15px}
 .product{display:inline-block;width:100%;margin:0 0 15px;vertical-align:top;break-inside:avoid;page-break-inside:avoid;background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:21px;overflow:hidden;transition:transform .25s,box-shadow .25s;box-shadow:0 7px 25px rgba(35,50,70,.05)}
-.product-image{height:160px;background:var(--bg)}
+.product-image{height:160px;background:var(--bg);position:relative}
+.product-badge{position:absolute;top:9px;left:9px;z-index:2;padding:5px 9px;border-radius:7px;color:#fff;font-size:10px;font-weight:800;letter-spacing:.55px;line-height:1;text-transform:uppercase;box-shadow:0 3px 10px rgba(0,0,0,.18);max-width:calc(100% - 18px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
 .product-image img{width:100%;height:100%;object-fit:cover;display:block}
 .product-info{padding:14px}
 .product-info h3{font-size:13px;margin:8px 0}
@@ -219,7 +220,7 @@ body.order-modal-open{position:fixed!important;width:100%!important}
 .app{padding:66px 12px 105px}.topbar-backplate{height:58px;top:6px}.topbar{height:58px;top:6px}.banner,.banner-content{height:155px}
 .products{columns:2;column-gap:10px}
 .product{margin-bottom:10px}
-.product-image{height:125px}.product-info{padding:11px}.product-info h3{font-size:12px}
+.product-image{height:125px}.product-badge{top:7px;left:7px;padding:5px 8px;font-size:9px}.product-info{padding:11px}.product-info h3{font-size:12px}
 .price{font-size:14px}.category-grid{gap:7px}.category{padding:12px 3px}
 .cat-icon{width:36px;height:36px}.category span{font-size:9px}
 .stats{gap:7px}.stat{padding:12px}.stat strong{font-size:20px}
@@ -739,8 +740,9 @@ put('bl_products',products);put('bl_categories',categories);put('bl_banners',ban
 }
 
 /* DATA TOKO BERSAMA - SUPABASE */
-function productToRow(p){return {id:Number(p.id),name:p.name,category:p.category||'',price:Number(p.price)||0,min_qty:Number(p.minQty)||1,max_qty:Number(p.maxQty)||99,rating:Number(p.rating)||0,sold:Number(p.sold)||0,image:p.image||'',description:p.description||'',updated_at:new Date().toISOString()}}
-function rowToProduct(p){return {id:Number(p.id),name:p.name,category:p.category||'',price:Number(p.price)||0,minQty:Number(p.min_qty)||1,maxQty:Number(p.max_qty)||99,rating:Number(p.rating)||0,sold:Number(p.sold)||0,image:p.image||'',description:p.description||''}}
+function productToRow(p){return {id:Number(p.id),name:p.name,category:p.category||'',price:Number(p.price)||0,min_qty:Number(p.minQty)||1,max_qty:Number(p.maxQty)||99,rating:Number(p.rating)||0,sold:Number(p.sold)||0,image:p.image||'',description:p.description||'',badge_text:p.badgeText||'',badge_color:safeBadgeColor(p.badgeColor),updated_at:new Date().toISOString()}}
+function rowToProduct(p){return {id:Number(p.id),name:p.name,category:p.category||'',price:Number(p.price)||0,minQty:Number(p.min_qty)||1,maxQty:Number(p.max_qty)||99,rating:Number(p.rating)||0,sold:Number(p.sold)||0,image:p.image||'',description:p.description||'',badgeText:p.badge_text||'',badgeColor:safeBadgeColor(p.badge_color)}}
+function safeBadgeColor(value){return /^#[0-9a-f]{6}$/i.test(String(value||''))?String(value):'#2563eb'}
 async function loadSharedData(){
  try{
   const [pr,ca,ba,se,sc]=await Promise.all([
@@ -1161,7 +1163,7 @@ return g+' · '+t+' WIB · Asia/Jakarta';
 /* PRODUCT */
 function productCard(p){
 return `<article class="product">
-<div class="product-image"><img src="${esc(productImage(p))}" alt="${esc(p.name)}" loading="lazy"></div>
+<div class="product-image"><img src="${esc(productImage(p))}" alt="${esc(p.name)}" loading="lazy">${p.badgeText?`<span class="product-badge" style="background:${safeBadgeColor(p.badgeColor)}">${esc(p.badgeText)}</span>`:''}</div>
 <div class="product-info">
 <div class="product-meta"><span>${esc(p.category)}</span><span>★ ${esc(p.rating)}</span></div>
 <h3>${esc(p.name)}</h3>
@@ -1798,6 +1800,8 @@ if(adminTab==='products')return `<div class="panel">
 <div class="field"><label>Maksimal pembelian produk ini</label><input id="pMax" type="number" min="1" value="99"></div>
 <div class="field"><label>Rating</label><input id="pRating" type="number" min="0" max="5" step=".1" value="5"></div>
 <div class="field"><label>Deskripsi</label><textarea id="pDesc" placeholder="Deskripsi produk"></textarea></div>
+<div class="field"><label>Label card (opsional)</label><input id="pBadgeText" maxlength="18" placeholder="NEW, SOLD, HOT, atau lainnya"></div>
+<div class="field"><label>Warna label</label><div style="display:flex;align-items:center;gap:12px"><input id="pBadgeColor" type="color" value="#2563eb" style="width:58px;height:42px;padding:3px;border-radius:10px"><span class="muted">Pilih warna background label</span></div></div>
 <div class="field"><label>Foto produk</label><label class="file-label" for="pImageFile">＋ Upload foto atau GIF dari perangkat</label><input id="pImageFile" type="file" accept="image/*,.gif" hidden onchange="previewProductImage(this)"><img id="pImagePreview" class="upload-preview" src="https://placehold.co/700x350/e9edf3/66768b?text=Preview+Produk"><p class="upload-note">Mendukung JPG, PNG, WEBP, dan GIF animasi. Maksimal 25 MB.</p></div>
 <div class="field"><label>Atau URL gambar (opsional)</label><input id="pImageUrl" placeholder="https://..."></div>
 <button class="primary" style="width:100%;margin-top:17px" onclick="saveProduct()">Simpan produk</button>
@@ -1902,7 +1906,7 @@ if(file){
  try{const localBlob=await readMedia(imageKey);if(localBlob)image=await uploadSharedMedia(localBlob,'products')}
  catch(e){toast('Gagal memindahkan gambar produk ke penyimpanan online: '+e.message);return}
 }
-let data={name,category:$('#pCategory').value,price,minQty:min,maxQty:max,rating:Math.max(0,Math.min(5,Number($('#pRating').value)||5)),description:$('#pDesc').value.trim(),image,imageKey};
+let data={name,category:$('#pCategory').value,price,minQty:min,maxQty:max,rating:Math.max(0,Math.min(5,Number($('#pRating').value)||5)),description:$('#pDesc').value.trim(),image,imageKey,badgeText:$('#pBadgeText').value.trim().slice(0,18),badgeColor:safeBadgeColor($('#pBadgeColor').value)};
 if(old){Object.assign(old,data);toast('Produk berhasil diperbarui.')}
 else{products.unshift({id:Date.now(),...data,sold:0});toast('Produk berhasil ditambahkan.')}
 persist();
@@ -1914,13 +1918,15 @@ let p=products.find(x=>x.id===id);if(!p)return;
 $('#pId').value=p.id;$('#pName').value=p.name;$('#pCategory').value=p.category;$('#pCategoryLabel').textContent=p.category;
 $('#pPrice').value=p.price;$('#pMin').value=p.minQty||1;$('#pMax').value=p.maxQty||99;
 $('#pRating').value=p.rating;$('#pDesc').value=p.description;
+$('#pBadgeText').value=p.badgeText||'';$('#pBadgeColor').value=safeBadgeColor(p.badgeColor);
 $('#pImageUrl').value=p.image||'';
 $('#pImagePreview').src=productImage(p);
 $('#pImageFile').value='';
 window.scrollTo({top:0,behavior:'smooth'});
 }
 function resetProductForm(){
-['pId','pName','pPrice','pDesc','pImageUrl','pCategory'].forEach(id=>$('#'+id).value='');
+['pId','pName','pPrice','pDesc','pImageUrl','pCategory','pBadgeText'].forEach(id=>$('#'+id).value='');
+$('#pBadgeColor').value='#2563eb';
 $('#pCategoryLabel').textContent='Pilih kategori ▾';
 $('#pRating').value=5;$('#pMin').value=1;$('#pMax').value=99;
 $('#pImageFile').value='';$('#pImagePreview').src='https://placehold.co/700x350/e9edf3/66768b?text=Preview+Produk';
