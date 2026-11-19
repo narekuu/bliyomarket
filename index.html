@@ -559,7 +559,8 @@ body.admin-drawer-open{
  position:fixed!important;
  inset:0!important;
  width:100%!important;
- touch-action:none;
+ /* Jangan gunakan touch-action:none di body: itu ikut memblokir swipe drawer. */
+ touch-action:auto!important;
 }
 .admin-drawer{
  overscroll-behavior:contain;
