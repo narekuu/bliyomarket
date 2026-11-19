@@ -397,38 +397,44 @@ body.dark .nav-indicator{background:linear-gradient(145deg,rgba(220,240,255,.3),
 }
 
 
-/* FIX: fixed ocean wallpaper + matching overscroll background */
+/* FIX: STATIONARY PURPLE AURORA WALLPAPER */
 html{
   min-height:100%;
-  background:
-    radial-gradient(ellipse at 8% 25%,#b5f3e5 0%,transparent 34%),
-    radial-gradient(ellipse at 90% 15%,#1685ed 0%,transparent 42%),
-    radial-gradient(ellipse at 45% 95%,#a6e8e0 0%,transparent 40%),
-    linear-gradient(135deg,#6cc4dc,#398fd4 48%,#0646a4);
+  background:#30275f;
 }
-html:has(body.dark){
-  background:
-    radial-gradient(ellipse at 8% 25%,rgba(36,157,167,.25),transparent 36%),
-    radial-gradient(ellipse at 90% 15%,rgba(20,103,194,.34),transparent 42%),
-    radial-gradient(ellipse at 45% 95%,rgba(37,123,151,.2),transparent 40%),
-    linear-gradient(135deg,#102d4b,#0b2850 48%,#06152e);
-}
-html::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  z-index:0;
-  pointer-events:none;
-  background:inherit;
-}
+html:has(body.dark){background:#090817}
+html::before{display:none!important}
+
+/* Hapus gelombang lama yang membuat latar terasa bergerak */
+body:before,body:after{content:none!important}
+
+/* Satu lapisan wallpaper tetap yang menutupi viewport */
 body,body.dark{
   position:relative;
-  z-index:1;
+  isolation:isolate;
   min-height:100vh;
   min-height:100svh;
   background:transparent!important;
 }
-
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 12% 18%,rgba(205,174,255,.92) 0%,transparent 36%),
+    radial-gradient(ellipse at 88% 22%,rgba(111,91,218,.88) 0%,transparent 42%),
+    radial-gradient(ellipse at 52% 100%,rgba(73,105,190,.82) 0%,transparent 48%),
+    linear-gradient(135deg,#51458f 0%,#393475 48%,#252c62 100%);
+}
+body.dark::before{
+  background:
+    radial-gradient(ellipse at 12% 18%,rgba(105,72,166,.34) 0%,transparent 38%),
+    radial-gradient(ellipse at 88% 22%,rgba(56,66,145,.42) 0%,transparent 42%),
+    radial-gradient(ellipse at 52% 100%,rgba(40,73,128,.28) 0%,transparent 48%),
+    linear-gradient(135deg,#17112e 0%,#10132e 52%,#090817 100%);
+}
 </style>
 </head>
 
