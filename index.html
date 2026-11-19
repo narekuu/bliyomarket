@@ -92,13 +92,15 @@ h1,h2,h3{letter-spacing:-.7px}
 .field textarea{min-height:90px;resize:vertical}
 .password-wrap{position:relative}.password-wrap input{padding-right:76px}.password-toggle{position:absolute;right:9px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--accent);font-size:11px;font-weight:800;padding:8px;border-radius:9px}.password-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .field input:focus,.field textarea:focus,.search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(100,130,160,.12)}
-.bottomnav{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);width:min(560px,calc(100% - 22px));padding:8px;display:grid;grid-template-columns:repeat(5,1fr);border-radius:25px;z-index:30}
-.navitem{position:relative;background:none;border:0;color:var(--muted);display:flex;align-items:center;flex-direction:column;gap:4px;font-size:10px;padding:8px 0;font-weight:700;transition:color .25s,transform .25s}
-.navitem svg{transition:transform .25s}
+.bottomnav{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);width:min(560px,calc(100% - 22px));padding:8px;display:grid;grid-template-columns:repeat(5,1fr);border-radius:25px;z-index:30;isolation:isolate}
+.nav-indicator{position:absolute;z-index:0;top:9px;left:0;width:38px;height:38px;border-radius:50%;background:color-mix(in srgb,var(--accent) 17%,transparent);box-shadow:0 0 18px color-mix(in srgb,var(--accent) 18%,transparent);pointer-events:none;transform:translateX(var(--indicator-x,8px));transition:transform .48s cubic-bezier(.22,.8,.25,1);will-change:transform}
+.navitem{position:relative;z-index:1;background:none;border:0;color:var(--muted);display:flex;align-items:center;flex-direction:column;gap:4px;font-size:10px;padding:8px 0;font-weight:700;transition:color .28s,transform .28s}
+.navitem svg{position:relative;z-index:1;transition:transform .35s cubic-bezier(.2,.8,.2,1)}
 .navitem.active{color:var(--accent)}
-.navitem.active svg{transform:translateY(-3px) scale(1.12)}
-.navitem.active:after{content:"";position:absolute;bottom:0;width:25px;height:3px;border-radius:10px;background:var(--accent);animation:navIndicator .25s ease}
+.navitem.active svg{transform:translateY(-2px) scale(1.12)}
+.navitem.active:after{content:"";position:absolute;bottom:0;width:18px;height:3px;border-radius:10px;background:var(--accent);animation:navIndicator .3s ease}
 @keyframes navIndicator{from{transform:scaleX(.2);opacity:0}to{transform:scaleX(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.nav-indicator,.navitem,.navitem svg{transition:none!important;animation:none!important}}
 .panel{background:var(--card);backdrop-filter:blur(22px);border:1px solid var(--line);border-radius:23px;padding:19px;box-shadow:var(--shadow)}
 .profile-cover{height:150px;background:linear-gradient(130deg,#293d56,#879bb5);border-radius:18px;margin-bottom:-48px;background-size:cover;background-position:center;position:relative;z-index:1;overflow:hidden}
 .profile-cover:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,transparent,rgba(0,0,0,.08));pointer-events:none}
@@ -204,6 +206,7 @@ BLIYO MARKET
 </div>
 
 <nav class="bottomnav glass" id="bottomNav">
+<span class="nav-indicator" id="navIndicator" aria-hidden="true"></span>
 <button class="navitem active" data-page="home" onclick="navigate('home')"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10h-6v-7H9v7H3z"/></svg>Home</button>
 <button class="navitem" data-page="categories" onclick="navigate('categories')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>Kategori</button>
 <button class="navitem" data-page="history" onclick="navigate('history')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Riwayat</button>
@@ -625,6 +628,13 @@ let hash=location.hash.replace('#','').split('?')[0];
 if(routeNames[hash])return hash;
 return 'home';
 }
+function updateNavIndicator(){
+ const nav=$('#bottomNav'),indicator=$('#navIndicator'),active=nav?.querySelector('.navitem.active');
+ if(!nav||!indicator||!active)return;
+ const x=active.offsetLeft+(active.offsetWidth-indicator.offsetWidth)/2;
+ indicator.style.setProperty('--indicator-x',x+'px');
+}
+window.addEventListener('resize',updateNavIndicator);
 function navigate(page){
 if(!routeNames[page])page='home';
 current=page;
@@ -1434,6 +1444,7 @@ const blocked=!!siteControl.maintenance_enabled&&user?.role!=='admin'&&current!=
 let isAdmin=current==='admin'||blocked;
 $('#bottomNav').classList.toggle('hidden',isAdmin);
 document.querySelectorAll('.navitem').forEach(el=>el.classList.toggle('active',el.dataset.page===current));
+ updateNavIndicator();
 let pages={home:homePage,categories:categoriesPage,products:productsPage,history:historyPage,profile:profilePage,login:loginPage,register:registerPage,verify:verificationPage,editprofile:editProfilePage,password:passwordPage,admin:renderAdmin,search:searchPage};
 $('#view').innerHTML=blocked?maintenancePage():(pages[current]||homePage)();
 $('#view').setAttribute('aria-busy','false');
