@@ -489,6 +489,28 @@ body.dark .wallpaper .shade{
  to{transform:translateX(8%) scale(1.15)}
 }
 @media(prefers-reduced-motion:reduce){.wallpaper *{animation:none!important}}
+/* MOBILE SCROLL STABILITY — keep wallpaper pinned during fast flicks */
+html{
+ background:#398fd4!important;
+}
+html:has(body.dark){background:#0b2850!important}
+body{
+ background:transparent!important;
+}
+.wallpaper{
+ position:fixed!important;
+ inset:0!important;
+ width:100%!important;
+ height:100svh!important;
+ min-height:100svh!important;
+ max-height:100svh!important;
+ transform:none!important;
+ contain:strict;
+ isolation:isolate;
+}
+@supports (height:100dvh){
+ .wallpaper{height:100svh!important}
+}
 </style>
 </head>
 
