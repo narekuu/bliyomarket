@@ -623,23 +623,33 @@ body.dark .admin-drawer-link{color:#d6e6f4}
 body.dark .admin-drawer-link .drawer-icon,body.dark .admin-drawer-foot{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.13);color:#d6e6f4}
 body.dark .admin-menu-trigger{background:rgba(20,38,57,.82);color:#eff7ff;border-color:rgba(255,255,255,.2)}
 @media(min-width:760px){.admin-drawer{left:20px;top:20px;bottom:20px;width:320px}}
-/* Header dynamic: sedikit mengecil saat konten digulir */
+/* Dynamic header: mengecil, sedikit naik, dan kembali dengan easing yang lebih lembut */
 .topbar{
- transition:width .32s cubic-bezier(.2,.8,.2,1),height .32s cubic-bezier(.2,.8,.2,1),top .32s cubic-bezier(.2,.8,.2,1),transform .32s cubic-bezier(.2,.8,.2,1),border-radius .32s ease,box-shadow .32s ease!important;
- transform:translateX(-50%) scale(1);
+ transition:
+  width .58s cubic-bezier(.22,1,.36,1),
+  height .58s cubic-bezier(.22,1,.36,1),
+  top .58s cubic-bezier(.22,1,.36,1),
+  transform .58s cubic-bezier(.22,1,.36,1),
+  border-radius .48s cubic-bezier(.22,1,.36,1),
+  box-shadow .48s ease,
+  padding .48s cubic-bezier(.22,1,.36,1)!important;
+ transform:translate3d(-50%,0,0) scale(1);
  transform-origin:top center;
+ will-change:width,height,top,transform;
 }
 .topbar.is-scrolled{
- width:calc(100% - 54px)!important;
- height:56px!important;
- top:6px!important;
- border-radius:22px!important;
- transform:translateX(-50%) scale(.985)!important;
- box-shadow:0 9px 26px rgba(0,25,65,.16),inset 0 1px 1px rgba(255,255,255,.5)!important;
+ width:calc(100% - 66px)!important;
+ height:52px!important;
+ top:2px!important;
+ border-radius:19px!important;
+ transform:translate3d(-50%,-1px,0) scale(.97)!important;
+ box-shadow:0 8px 22px rgba(0,25,65,.13),inset 0 1px 1px rgba(255,255,255,.46)!important;
 }
-.topbar.is-scrolled .brand img{width:33px;height:33px;transition:width .32s ease,height .32s ease}
-.topbar .brand img{transition:width .32s ease,height .32s ease}
-@media(prefers-reduced-motion:reduce){.topbar,.topbar .brand img{transition:none!important}}
+.topbar.is-scrolled .brand img{width:30px;height:30px}
+.topbar .brand img{transition:width .58s cubic-bezier(.22,1,.36,1),height .58s cubic-bezier(.22,1,.36,1)}
+.topbar.is-scrolled .actions{gap:7px;transition:gap .48s cubic-bezier(.22,1,.36,1)}
+.topbar .actions{transition:gap .48s cubic-bezier(.22,1,.36,1)}
+@media(prefers-reduced-motion:reduce){.topbar,.topbar .brand img,.topbar .actions{transition:none!important;will-change:auto}}
 </style>
 </head>
 
