@@ -397,18 +397,18 @@ body.dark .nav-indicator{background:linear-gradient(145deg,rgba(220,240,255,.3),
 }
 
 
-/* FIX: STATIONARY PURPLE AURORA WALLPAPER */
+/* FIX: STATIONARY FRESH AQUA SKY WALLPAPER */
 html{
   min-height:100%;
-  background:#30275f;
+  background:#83d9df;
 }
-html:has(body.dark){background:#090817}
+html:has(body.dark){background:#102b3b}
 html::before{display:none!important}
 
-/* Hapus gelombang lama yang membuat latar terasa bergerak */
+/* Matikan bentuk gelombang lama agar latar tidak terasa bergeser */
 body:before,body:after{content:none!important}
 
-/* Satu lapisan wallpaper tetap yang menutupi viewport */
+/* Wallpaper satu lapis, terkunci pada viewport */
 body,body.dark{
   position:relative;
   isolation:isolate;
@@ -423,17 +423,17 @@ body::before{
   z-index:-1;
   pointer-events:none;
   background:
-    radial-gradient(ellipse at 12% 18%,rgba(205,174,255,.92) 0%,transparent 36%),
-    radial-gradient(ellipse at 88% 22%,rgba(111,91,218,.88) 0%,transparent 42%),
-    radial-gradient(ellipse at 52% 100%,rgba(73,105,190,.82) 0%,transparent 48%),
-    linear-gradient(135deg,#51458f 0%,#393475 48%,#252c62 100%);
+    radial-gradient(ellipse at 14% 16%,rgba(225,255,246,.96) 0%,transparent 37%),
+    radial-gradient(ellipse at 88% 20%,rgba(112,220,224,.88) 0%,transparent 43%),
+    radial-gradient(ellipse at 52% 100%,rgba(133,190,236,.82) 0%,transparent 48%),
+    linear-gradient(135deg,#b7eee2 0%,#83d9df 48%,#75aee0 100%);
 }
 body.dark::before{
   background:
-    radial-gradient(ellipse at 12% 18%,rgba(105,72,166,.34) 0%,transparent 38%),
-    radial-gradient(ellipse at 88% 22%,rgba(56,66,145,.42) 0%,transparent 42%),
-    radial-gradient(ellipse at 52% 100%,rgba(40,73,128,.28) 0%,transparent 48%),
-    linear-gradient(135deg,#17112e 0%,#10132e 52%,#090817 100%);
+    radial-gradient(ellipse at 14% 16%,rgba(49,112,119,.34) 0%,transparent 38%),
+    radial-gradient(ellipse at 88% 20%,rgba(42,113,145,.38) 0%,transparent 43%),
+    radial-gradient(ellipse at 52% 100%,rgba(40,82,125,.34) 0%,transparent 48%),
+    linear-gradient(135deg,#183c43 0%,#153b4a 52%,#102b3b 100%);
 }
 </style>
 </head>
