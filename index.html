@@ -972,14 +972,15 @@ toast('Banner profil berhasil diperbarui.');
 
 async function saveProfile(){
 let name=$('#profileName').value.trim();if(!name)return toast('Nama tidak boleh kosong.');
+if(!user?.id||!user?.email)return toast('Sesi akun tidak valid. Silakan login ulang.');
 let button=$('#view button.primary');
 if(button){button.disabled=true;button.textContent='Menyimpan...';}
 try{
- const {data:updated,error}=await supabaseClient.from('user_profiles')
-  .update({name,updated_at:new Date().toISOString()})
-  .eq('id',user.id).select('id').maybeSingle();
+ const {data:saved,error}=await supabaseClient.from('user_profiles')
+  .upsert({id:user.id,email:user.email,name,updated_at:new Date().toISOString()},{onConflict:'id'})
+  .select('id').single();
  if(error)throw error;
- if(!updated)throw new Error('Data profil akun tidak ditemukan di server. Coba login ulang, lalu simpan kembali.');
+ if(!saved?.id)throw new Error('Server belum mengonfirmasi penyimpanan profil.');
  const {error:metaError}=await supabaseClient.auth.updateUser({data:{name}});
  if(metaError)throw metaError;
  user.name=name;
