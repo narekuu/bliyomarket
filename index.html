@@ -656,13 +656,14 @@ function transitionToPage(page){
 }
 function navigate(page){
  if(!routeNames[page])page='home';
- if(page===current){window.scrollTo({top:0,behavior:'smooth'});return;}
+ // Halaman yang sama: jangan render ulang, jangan scroll, dan jangan tambah history.
+ if(page===current)return;
  try{history.pushState({page},'','/'+page)}catch{history.pushState({page},'','#'+page)}
  transitionToPage(page);
 }
 window.addEventListener('popstate',e=>{
 const page=e.state?.page||pageFromURL();adminTab=e.state?.adminTab||adminTab;
-if(page===current){render();return;}
+if(page===current)return;
 transitionToPage(page);
 });
 function greeting(){
