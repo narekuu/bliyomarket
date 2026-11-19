@@ -41,7 +41,8 @@ background:var(--glass);backdrop-filter:blur(var(--blur)) saturate(180%);
 -webkit-backdrop-filter:blur(var(--blur)) saturate(180%);
 border:1px solid var(--line);box-shadow:var(--shadow),inset 0 1px 1px rgba(255,255,255,.45);
 }
-.topbar{height:63px;padding:0 17px;border-radius:22px;display:flex;justify-content:space-between;align-items:center;position:fixed;top:8px;left:50%;transform:translateX(-50%);width:calc(100% - 34px);max-width:1116px;z-index:40}
+.topbar-backplate{position:fixed;top:8px;left:50%;transform:translateX(-50%);width:calc(100% - 34px);max-width:1116px;height:63px;border-radius:22px;z-index:39;pointer-events:none;transition:opacity .55s ease,visibility .55s ease}
+.topbar{height:63px;padding:0 17px;border-radius:25px;display:flex;justify-content:space-between;align-items:center;position:fixed;top:8px;left:50%;transform:translateX(-50%);width:min(440px,calc(100% - 34px));max-width:1116px;z-index:40}
 .brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:2px;font-size:15px}
 .brand img{width:37px;height:37px;object-fit:contain;border-radius:10px}
 .actions{display:flex;gap:9px}
@@ -215,7 +216,7 @@ body.order-modal-open{position:fixed!important;width:100%!important}
 .upload-note{font-size:10px;color:var(--muted);margin-top:7px;line-height:1.7}
 .file-label{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:var(--glass);border:1px dashed var(--accent);border-radius:14px;font-size:12px;font-weight:700;cursor:pointer}
 @media(max-width:650px){
-.app{padding:10px 12px 105px}.topbar{height:58px;top:6px}.banner,.banner-content{height:155px}
+.app{padding:10px 12px 105px}.topbar-backplate{height:58px;top:6px}.topbar{height:58px;top:6px}.banner,.banner-content{height:155px}
 .products{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .product-image{height:125px}.product-info{padding:11px}.product-info h3{font-size:12px}
 .price{font-size:14px}.category-grid{gap:7px}.category{padding:12px 3px}
@@ -637,6 +638,7 @@ body.dark .admin-menu-trigger{background:rgba(20,38,57,.82);color:#eff7ff;border
  transform-origin:center center;
  will-change:width,height,top;
 }
+.topbar-backplate.is-hidden{opacity:0;visibility:hidden}
 .topbar.is-scrolled{
  width:min(420px,calc(100% - 104px))!important;
  height:54px!important;
@@ -666,6 +668,7 @@ body.dark .admin-menu-trigger{background:rgba(20,38,57,.82);color:#eff7ff;border
 </div>
 
 <div class="app">
+<div class="topbar-backplate glass" aria-hidden="true"></div>
 <header class="topbar glass">
 <div class="brand">
 <img src="https://www.image2url.com/r2/default/files/1795010170495-9c6bcbc0-665b-4557-bc88-6281419aad43.png">
@@ -681,7 +684,7 @@ BLIYO MARKET
 </div>
 <script>
 /* Header dipindahkan langsung ke body agar fixed tidak ikut area scroll .app di Android. */
-(()=>{const header=document.querySelector('.topbar'),scroller=document.querySelector('.app');if(header&&header.parentElement!==document.body)document.body.insertBefore(header,document.body.firstChild);if(header&&scroller){const update=()=>header.classList.toggle('is-scrolled',scroller.scrollTop>18);scroller.addEventListener('scroll',update,{passive:true});update()}})();
+(()=>{const header=document.querySelector('.topbar'),scroller=document.querySelector('.app');if(header&&header.parentElement!==document.body)document.body.insertBefore(header,document.body.firstChild);if(header&&scroller){const plate=document.querySelector('.topbar-backplate');const update=()=>{const compact=scroller.scrollTop>18;header.classList.toggle('is-scrolled',compact);if(plate)plate.classList.toggle('is-hidden',compact)};scroller.addEventListener('scroll',update,{passive:true});update()}})();
 </script>
 
 <nav class="bottomnav glass" id="bottomNav">
