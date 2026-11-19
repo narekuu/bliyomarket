@@ -397,26 +397,16 @@ body.dark .nav-indicator{background:linear-gradient(145deg,rgba(220,240,255,.3),
 }
 
 
-/* FIX: prevent white canvas from appearing at the scroll edges on mobile */
+/* FIX: keep the ocean wallpaper stationary while covering overscroll */
 html{
   min-height:100%;
   background-color:#398fd4;
-  background-image:
-    radial-gradient(ellipse at 8% 25%,#b5f3e5 0%,transparent 34%),
-    radial-gradient(ellipse at 90% 15%,#1685ed 0%,transparent 42%),
-    linear-gradient(135deg,#6cc4dc,#398fd4 48%,#0646a4);
 }
-html:has(body.dark){
-  background-color:#06152e;
-  background-image:
-    radial-gradient(ellipse at 8% 25%,rgba(36,157,167,.25),transparent 36%),
-    radial-gradient(ellipse at 90% 15%,rgba(20,103,194,.34),transparent 42%),
-    linear-gradient(135deg,#102d4b,#0b2850 48%,#06152e);
-}
+html:has(body.dark){background-color:#06152e}
 body,body.dark{
   min-height:100vh;
   min-height:100svh;
-  background-attachment:scroll;
+  background-attachment:fixed;
 }
 
 </style>
