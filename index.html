@@ -467,34 +467,37 @@ put('bl_last_profile',lastProfile);
 function saveAccountProfile(){
 if(!user||!user.email)return;
 let users=get('bl_users',[]);
-let index=users.findIndex(x=>x.email===user.email);
-
-if(index!==-1){
-users[index]={
-...users[index],
-name:user.name||users[index].name,
-photoKey:user.photoKey||'',
-coverKey:user.coverKey||''
+let email=String(user.email).trim().toLowerCase();
+let index=users.findIndex(x=>String(x.email||'').trim().toLowerCase()===email);
+let previous=index!==-1?users[index]:{};
+let account={
+ ...previous,
+ email:user.email,
+ name:user.name||previous.name||'Pengguna',
+ photoKey:user.photoKey||previous.photoKey||'',
+ coverKey:user.coverKey||previous.coverKey||''
 };
+if(index!==-1)users[index]=account;
+else users.push(account);
 put('bl_users',users);
-}
 saveLastProfile();
 }
 
 async function restoreProfileMedia(){
 if(!user)return;
 let users=get('bl_users',[]);
-let account=users.find(x=>x.email===user.email);
-
+let email=String(user.email||'').trim().toLowerCase();
+let account=users.find(x=>String(x.email||'').trim().toLowerCase()===email);
+let saved=get('bl_last_profile',null);
+if(!account&&saved&&String(saved.email||'').trim().toLowerCase()===email)account=saved;
 if(account){
-user.photoKey=account.photoKey||user.photoKey||'';
-user.coverKey=account.coverKey||user.coverKey||'';
+ user.photoKey=account.photoKey||user.photoKey||'';
+ user.coverKey=account.coverKey||user.coverKey||'';
 }
 if(user.photoKey)await loadMedia(user.photoKey);
 if(user.coverKey)await loadMedia(user.coverKey);
-
 put('bl_user',user);
-saveLastProfile();
+saveAccountProfile();
 }
 
 async function restoreLastProfileMedia(){
@@ -832,7 +835,9 @@ if(!data?.user)return toast('Login belum berhasil. Coba lagi.');
 if(email===ADMIN_EMAIL&&data.user.id!==ADMIN_UID){await supabaseClient.auth.signOut();return toast('Akun ini tidak memiliki izin admin BLIYO.');}
 const isAdmin=data.user.id===ADMIN_UID;
 const {data:profile}=isAdmin?{data:null}:await supabaseClient.from('user_profiles').select('name').eq('id',data.user.id).maybeSingle();
-let legacyProfile=migratedLegacy||get('bl_users',[]).find(u=>u.email===email);
+let savedProfile=get('bl_last_profile',null);
+let legacyProfile=migratedLegacy||get('bl_users',[]).find(u=>String(u.email||'').trim().toLowerCase()===email.toLowerCase());
+if(!legacyProfile&&savedProfile&&String(savedProfile.email||'').trim().toLowerCase()===email.toLowerCase())legacyProfile=savedProfile;
 user={id:data.user.id,name:isAdmin?'Administrator':profile?.name||data.user.user_metadata?.name||legacyProfile?.name||'Pengguna',email,role:isAdmin?'admin':'user',photoKey:legacyProfile?.photoKey||'',coverKey:legacyProfile?.coverKey||''};
 put('bl_user',user);setSession();
 await restoreProfileMedia();
@@ -968,12 +973,26 @@ toast('Banner profil berhasil diperbarui.');
 
 async function saveProfile(){
 let name=$('#profileName').value.trim();if(!name)return toast('Nama tidak boleh kosong.');
-user.name=name;put('bl_user',user);
-const {error}=await supabaseClient.from('user_profiles').update({name,updated_at:new Date().toISOString()}).eq('id',user.id);
-if(error)return toast('Gagal menyimpan profil: '+error.message);
-saveLastProfile();toast('Profil disimpan.');navigate('profile');
+let button=$('#view button.primary');
+if(button){button.disabled=true;button.textContent='Menyimpan...';}
+try{
+ const {data:updated,error}=await supabaseClient.from('user_profiles')
+  .update({name,updated_at:new Date().toISOString()})
+  .eq('id',user.id).select('id').maybeSingle();
+ if(error)throw error;
+ if(!updated)throw new Error('Data profil akun tidak ditemukan di server. Coba login ulang, lalu simpan kembali.');
+ const {error:metaError}=await supabaseClient.auth.updateUser({data:{name}});
+ if(metaError)throw metaError;
+ user.name=name;
+ put('bl_user',user);
+ saveAccountProfile();
+ toast('Profil berhasil disimpan.');
+ navigate('profile');
+}catch(e){
+ if(button){button.disabled=false;button.textContent='Simpan perubahan';}
+ toast('Gagal menyimpan profil: '+(e.message||'Periksa koneksi.'));
 }
-
+}
 function passwordPage(){
 return `<section class="fade"><h1 class="page-title">Keamanan akun</h1><p class="muted">Ganti password akun BLIYO kamu.</p><div class="panel section">
 <div class="field"><label>Password lama</label><input id="oldPass" type="password" placeholder="Password saat ini"></div>
@@ -1288,8 +1307,11 @@ user=null;
 if(session?.user){
 const authUser=session.user,isAdmin=authUser.id===ADMIN_UID;
 const {data:profile}=isAdmin?{data:null}:await supabaseClient.from('user_profiles').select('name').eq('id',authUser.id).maybeSingle();
-let local=get('bl_users',[]).find(x=>x.email===authUser.email);
-user={id:authUser.id,name:isAdmin?'Administrator':profile?.name||authUser.user_metadata?.name||'Pengguna',email:authUser.email,role:isAdmin?'admin':'user',photoKey:local?.photoKey||'',coverKey:local?.coverKey||''};
+let email=String(authUser.email||'').trim().toLowerCase();
+let local=get('bl_users',[]).find(x=>String(x.email||'').trim().toLowerCase()===email);
+let saved=get('bl_last_profile',null);
+if(!local&&saved&&String(saved.email||'').trim().toLowerCase()===email)local=saved;
+user={id:authUser.id,name:isAdmin?'Administrator':profile?.name||authUser.user_metadata?.name||local?.name||'Pengguna',email:authUser.email,role:isAdmin?'admin':'user',photoKey:local?.photoKey||'',coverKey:local?.coverKey||''};
 put('bl_user',user);
 }else{
 localStorage.removeItem('bl_user');sessionStorage.removeItem('bl_user');localStorage.removeItem('bl_exp');
