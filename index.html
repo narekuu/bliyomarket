@@ -484,8 +484,10 @@ body.dark .wallpaper{
  width:130%;
  height:75%;
  border-radius:50%;
- border-top:2px solid rgba(255,255,255,.28);
- background:linear-gradient(160deg,rgba(255,255,255,.16),transparent 45%,rgba(0,65,180,.13));
+ border-top:2px solid rgba(255,255,255,.22);
+ /* Garis gelombang saja; hindari bidang gradient lebar yang menimbulkan pita di sisi kiri layar. */
+ background:transparent!important;
+ box-shadow:none!important;
  will-change:transform;
 }
 .wallpaper .wave.one{
