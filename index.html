@@ -948,11 +948,12 @@ put('bl_users',get('bl_users',[]).filter(u=>u.email!==email));
 if(!data?.user)return toast('Login belum berhasil. Coba lagi.');
 if(email===ADMIN_EMAIL&&data.user.id!==ADMIN_UID){await supabaseClient.auth.signOut();return toast('Akun ini tidak memiliki izin admin BLIYO.');}
 const isAdmin=data.user.id===ADMIN_UID||await checkAdminRole(data.session?.access_token);
-const {data:profile}=isAdmin?{data:null}:await supabaseClient.from('user_profiles').select('name').eq('id',data.user.id).maybeSingle();
+const {data:profile,error:profileError}=await supabaseClient.from('user_profiles').select('name').eq('id',data.user.id).maybeSingle();
+if(profileError)console.warn('Gagal memuat nama profil:',profileError);
 let savedProfile=get('bl_last_profile',null);
 let legacyProfile=migratedLegacy||get('bl_users',[]).find(u=>String(u.email||'').trim().toLowerCase()===email.toLowerCase());
 if(!legacyProfile&&savedProfile&&String(savedProfile.email||'').trim().toLowerCase()===email.toLowerCase())legacyProfile=savedProfile;
-user={id:data.user.id,name:data.user.id===ADMIN_UID?'Administrator':profile?.name||data.user.user_metadata?.name||legacyProfile?.name||'Pengguna',email,role:isAdmin?'admin':'user',photoKey:legacyProfile?.photoKey||'',coverKey:legacyProfile?.coverKey||''};
+user={id:data.user.id,name:profile?.name||data.user.user_metadata?.name||legacyProfile?.name||(data.user.id===ADMIN_UID?'Administrator':'Pengguna'),email,role:isAdmin?'admin':'user',photoKey:legacyProfile?.photoKey||'',coverKey:legacyProfile?.coverKey||''};
 put('bl_user',user);setSession();
 await restoreProfileMedia();
 if(isAdmin){await loadAdminUsers().catch(e=>console.error(e));if(user.id===ADMIN_UID)await loadAdminManagement().catch(e=>console.error(e));}
@@ -1453,12 +1454,13 @@ user=null;
 if(session?.user){
 if(session.user.email_confirmed_at){pendingVerificationEmail='';localStorage.removeItem('bl_pending_verification_email');}
 const authUser=session.user,isAdmin=authUser.id===ADMIN_UID||await checkAdminRole(session.access_token);
-const {data:profile}=isAdmin?{data:null}:await supabaseClient.from('user_profiles').select('name').eq('id',authUser.id).maybeSingle();
+const {data:profile,error:profileError}=await supabaseClient.from('user_profiles').select('name').eq('id',authUser.id).maybeSingle();
+if(profileError)console.warn('Gagal memuat nama profil:',profileError);
 let email=String(authUser.email||'').trim().toLowerCase();
 let local=get('bl_users',[]).find(x=>String(x.email||'').trim().toLowerCase()===email);
 let saved=get('bl_last_profile',null);
 if(!local&&saved&&String(saved.email||'').trim().toLowerCase()===email)local=saved;
-user={id:authUser.id,name:isAdmin?'Administrator':profile?.name||authUser.user_metadata?.name||local?.name||'Pengguna',email:authUser.email,role:isAdmin?'admin':'user',photoKey:local?.photoKey||'',coverKey:local?.coverKey||''};
+user={id:authUser.id,name:profile?.name||authUser.user_metadata?.name||local?.name||(authUser.id===ADMIN_UID?'Administrator':'Pengguna'),email:authUser.email,role:isAdmin?'admin':'user',photoKey:local?.photoKey||'',coverKey:local?.coverKey||''};
 put('bl_user',user);
 }else{
 localStorage.removeItem('bl_user');sessionStorage.removeItem('bl_user');localStorage.removeItem('bl_exp');
