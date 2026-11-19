@@ -105,6 +105,7 @@ h1,h2,h3{letter-spacing:-.7px}
 .profile-photo{width:88px;height:88px;flex:0 0 88px;border-radius:50%;object-fit:cover;background:var(--bg);border:5px solid var(--card);position:relative;z-index:4}
 .profile-info{padding-top:12px;min-width:0;position:relative;z-index:4}
 .profile-info h2{font-size:19px;overflow-wrap:anywhere}
+.profile-page-head .profile-info{transform:translateY(9px)}
 .profile-menu{display:flex;align-items:center;gap:13px;padding:16px 13px;border-bottom:1px solid var(--line);width:100%;border-left:0;border-right:0;border-top:0;background:none;color:var(--text);text-align:left}
 .profile-menu:last-child{border-bottom:0}
 .menu-icon{width:40px;height:40px;border-radius:14px;background:var(--glass-strong);display:grid;place-items:center;color:var(--accent)}
@@ -908,7 +909,7 @@ let coverStyle=cover?`background-image:url('${esc(cover)}')`:'background:linear-
 return `<section class="fade"><div class="eyebrow">ACCOUNT CENTER</div><h1 class="page-title">Profil Saya</h1>
 <div class="panel section" style="padding:12px">
 <div class="profile-cover" style="${coverStyle}"></div>
-<div class="profile-head"><img class="profile-photo" src="${esc(photo)}"><div class="profile-info"><h2>${esc(user.name)}</h2><p class="muted">${esc(user.email)}</p></div></div>
+<div class="profile-head profile-page-head"><img class="profile-photo" src="${esc(photo)}"><div class="profile-info"><h2>${esc(user.name)}</h2><p class="muted">${esc(user.email)}</p></div></div>
 <div style="padding:20px 12px 10px"><span class="status ${isAdmin?'Selesai':''}">${isAdmin?'ADMINISTRATOR':'MEMBER BLIYO'}</span></div>
 </div>
 ${isAdmin?`<div class="panel section" style="background:linear-gradient(130deg,#293d56,#758ba6);color:white"><div class="row"><div><div class="eyebrow" style="color:#dce6f0">SPECIAL ACCESS</div><h2 style="margin-top:7px">Panel Admin</h2><p style="font-size:11px;color:#dce6f0;margin-top:6px">Kelola seluruh toko BLIYO MARKET.</p></div><div style="font-size:30px">✦</div></div><button class="primary" style="background:white;color:#344b65;width:100%;margin-top:18px" onclick="openAdmin()">Buka Panel Admin →</button></div>`:''}
