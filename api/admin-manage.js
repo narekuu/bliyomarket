@@ -10,7 +10,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ ok:false, error:"Method not allowed" });
   }
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) return res.status(503).json({ ok:false, error:"Admin API belum dikonfigurasi di server." });
   const auth = req.headers.authorization || "";
   const accessToken = auth.startsWith("Bearer ") ? auth.slice(7) : "";
