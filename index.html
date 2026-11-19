@@ -550,20 +550,17 @@ body{
 @media(prefers-reduced-motion:reduce){
  .wallpaper *{animation:none!important;transition:none!important}
 }
-/* KUNCI HALAMAN SAAT DRAWER ADMIN TERBUKA */
-html.admin-drawer-open,body.admin-drawer-open{
- overflow:hidden!important;
+/* DRAWER DIPORTAL KE BODY; HANYA SCROLLER UTAMA YANG DIKUNCI */
+.app.admin-drawer-locked{
+ overflow-y:hidden!important;
  overscroll-behavior:none!important;
 }
-body.admin-drawer-open{
- position:fixed!important;
- inset:0!important;
- width:100%!important;
- /* Jangan gunakan touch-action:none di body: itu ikut memblokir swipe drawer. */
- touch-action:auto!important;
-}
+body.admin-drawer-open{overflow:hidden!important}
 .admin-drawer{
- overscroll-behavior:contain;
+ max-height:calc(100dvh - 24px);
+ overflow-x:hidden!important;
+ overflow-y:auto!important;
+ overscroll-behavior-y:contain;
  touch-action:pan-y;
  -webkit-overflow-scrolling:touch;
 }
@@ -1636,22 +1633,16 @@ let adminDrawerScrollY=0;
 function toggleAdminMenu(force){
 const next=typeof force==='boolean'?force:!adminMenuOpen;
 if(next===adminMenuOpen)return;
+const app=document.querySelector('.app');
 adminMenuOpen=next;
 if(adminMenuOpen){
- adminDrawerScrollY=window.scrollY||window.pageYOffset||0;
- document.documentElement.classList.add('admin-drawer-open');
+ adminDrawerScrollY=app?.scrollTop||0;
+ app?.classList.add('admin-drawer-locked');
  document.body.classList.add('admin-drawer-open');
- document.body.style.top=(-adminDrawerScrollY)+'px';
 }else{
- document.documentElement.classList.remove('admin-drawer-open');
  document.body.classList.remove('admin-drawer-open');
- document.body.style.position='';
- document.body.style.inset='';
- document.body.style.width='';
- document.body.style.overflow='';
- document.body.style.touchAction='';
- document.body.style.top='';
- window.scrollTo(0,adminDrawerScrollY);
+ app?.classList.remove('admin-drawer-locked');
+ if(app)app.scrollTop=adminDrawerScrollY;
 }
 }
 function chooseAdminTab(key){
@@ -1922,6 +1913,13 @@ document.querySelectorAll('.navitem').forEach(el=>el.classList.toggle('active',e
  updateNavIndicator();
 let pages={home:homePage,categories:categoriesPage,products:productsPage,history:historyPage,profile:profilePage,login:loginPage,register:registerPage,verify:verificationPage,editprofile:editProfilePage,password:passwordPage,admin:renderAdmin,search:searchPage};
 $('#view').innerHTML=blocked?maintenancePage():(pages[current]||homePage)();
+/* Portal drawer ke body agar tidak ikut area scroll .app di Android. */
+if(current==='admin'&&!blocked){
+ const backdrop=$('#view .admin-drawer-backdrop');
+ const drawer=$('#view .admin-drawer');
+ if(backdrop)document.body.appendChild(backdrop);
+ if(drawer)document.body.appendChild(drawer);
+}
 $('#view').setAttribute('aria-busy','false');
 $('#view').classList.remove('page-exit','page-enter');void $('#view').offsetWidth;$('#view').classList.add('page-enter');
 if(current==='home')startBanners();
