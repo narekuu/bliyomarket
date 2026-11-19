@@ -659,6 +659,9 @@ body.dark .admin-menu-trigger{background:rgba(20,38,57,.82);color:#eff7ff;border
 .topbar.is-scrolled .iconbtn{width:36px;height:36px;border-radius:13px}
 .topbar .iconbtn{transition:width .8s cubic-bezier(.2,.9,.25,1),height .8s cubic-bezier(.2,.9,.25,1),border-radius .8s cubic-bezier(.2,.9,.25,1)}
 @media(prefers-reduced-motion:reduce){.topbar,.topbar .brand,.topbar .brand img,.topbar .actions,.topbar .iconbtn{transition:none!important;will-change:auto}}
+/* Halaman autentikasi tanpa kapsul header dan backplate navigasi atas. */
+body.auth-page .topbar,body.auth-page .topbar-backplate{display:none!important}
+body.auth-page .app{padding-top:18px!important}
 </style>
 </head>
 
@@ -2013,6 +2016,7 @@ function maintenancePage(){
  return `<section class="fade" style="min-height:72vh;display:grid;place-items:center"><div class="panel" style="width:min(560px,100%);padding:30px 22px;text-align:center"><div style="width:76px;height:76px;border-radius:25px;background:var(--glass-strong);display:grid;place-items:center;margin:0 auto 20px;color:var(--accent)"><svg viewBox="0 0 24 24" style="width:38px;height:38px"><path d="M14.7 6.3a5 5 0 0 0-6.9 6.9L3 18l3 3 4.8-4.8a5 5 0 0 0 6.9-6.9l-3 3-3-3 3-3z"/><path d="m14 10 3 3"/></svg></div><div class="eyebrow">BLIYO MARKET</div><h1 style="font-size:27px;margin-top:10px">Sedang Dalam Maintenance</h1><p class="muted" style="font-size:13px;margin:12px auto 0;max-width:410px">${esc(message)}</p><div class="status" style="display:inline-block;margin-top:20px">Situs sementara tidak tersedia</div><p class="muted" style="margin-top:17px">Halaman akan diperbarui otomatis setelah maintenance selesai.</p><button class="primary" style="margin-top:20px" onclick="location.reload()">Coba Lagi</button></div></section>`;
 }
 function render(options={}){
+document.body.classList.toggle('auth-page',current==='login'||current==='register');
 clearInterval(bannerTimer);clearTimeout(bannerTransitionTimer);
 /* Drawer lama sudah dipindah ke body, jadi wajib dibersihkan sebelum render ulang. */
 document.querySelectorAll('body > .admin-drawer,body > .admin-drawer-backdrop').forEach(el=>el.remove());
