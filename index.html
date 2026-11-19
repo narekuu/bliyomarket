@@ -661,7 +661,9 @@ function navigate(page){
  transitionToPage(page);
 }
 window.addEventListener('popstate',e=>{
-current=e.state?.page||pageFromURL();adminTab=e.state?.adminTab||adminTab;render();
+const page=e.state?.page||pageFromURL();adminTab=e.state?.adminTab||adminTab;
+if(page===current){render();return;}
+transitionToPage(page);
 });
 function greeting(){
 let h=Number(new Intl.DateTimeFormat('id-ID',{hour:'numeric',hour12:false,timeZone:'Asia/Jakarta'}).format(new Date()));
