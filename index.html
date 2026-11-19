@@ -319,14 +319,7 @@ body.dark{
   linear-gradient(135deg,#102d4b,#0b2850 48%,#06152e);
  background-attachment:fixed;
 }
-body:before,body:after{
- content:"";position:fixed;width:130%;height:75%;border-radius:50%;
- transform:rotate(-27deg);pointer-events:none;z-index:0;
- border-top:2px solid rgba(255,255,255,.27);
- background:linear-gradient(160deg,rgba(255,255,255,.13),transparent 45%,rgba(0,65,180,.1));
-}
-body:before{top:30%;left:-25%}
-body:after{top:55%;left:8%;opacity:.58}
+/* Decorative waves are rendered only inside the fixed .wallpaper layer. */
 .app{position:relative;z-index:1}
 .glass,.topbar,.panel,.product,.category,.order,.stat,.admin-item,.banner-wrap,.modal,.toast,.iconbtn,.btn,.admin-tab,.category-option,.upload-preview,.file-label,.bottomnav{
  background:linear-gradient(135deg,rgba(255,255,255,.19),rgba(255,255,255,.045) 45%,rgba(255,255,255,.105));
