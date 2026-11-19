@@ -237,6 +237,8 @@ let banners=get('bl_banners',[]);
 let orders=get('bl_orders',[]);
 let settings=get('bl_settings',{phone:'6281234567890',store:'BLIYO MARKET'});
 let current='home',adminTab='overview',bannerIndex=0,bannerTimer=null,bannerTransitionTimer=null;
+let siteControl={id:1,maintenance_enabled:false,maintenance_message:'BLIYO MARKET sedang dalam pemeliharaan. Silakan kembali beberapa saat lagi.'};
+let maintenancePollTimer=null;
 let selectedProduct=null,captcha={code:'',expires:0,timer:null};
 let pageToken=0,mediaDB=null,mediaCache={};
 let productCategory='',productSort='popular',orderSearch='';
@@ -251,13 +253,15 @@ function productToRow(p){return {id:Number(p.id),name:p.name,category:p.category
 function rowToProduct(p){return {id:Number(p.id),name:p.name,category:p.category||'',price:Number(p.price)||0,minQty:Number(p.min_qty)||1,maxQty:Number(p.max_qty)||99,rating:Number(p.rating)||0,sold:Number(p.sold)||0,image:p.image||'',description:p.description||''}}
 async function loadSharedData(){
  try{
-  const [pr,ca,ba,se]=await Promise.all([
+  const [pr,ca,ba,se,sc]=await Promise.all([
    supabaseClient.from('products').select('*').order('id'),
    supabaseClient.from('categories').select('name').order('id'),
    supabaseClient.from('banners').select('*').order('position').order('id'),
-   supabaseClient.from('store_settings').select('*').eq('id',1).maybeSingle()
+   supabaseClient.from('store_settings').select('*').eq('id',1).maybeSingle(),
+   supabaseClient.from('site_control').select('*').eq('id',1).maybeSingle()
   ]);
-  for(const x of [pr,ca,ba,se])if(x.error)throw x.error;
+  for(const x of [pr,ca,ba,se,sc])if(x.error)throw x.error;
+  if(sc.data)siteControl=sc.data;
   const admin=(await supabaseClient.auth.getSession()).data.session?.user?.id===ADMIN_UID;
   if(!pr.data.length&&admin){
    const seed=[];
@@ -349,12 +353,39 @@ function startSharedRealtime(){
  .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadSharedData())
  .on('postgres_changes',{event:'*',schema:'public',table:'banners'},()=>loadSharedData())
  .on('postgres_changes',{event:'*',schema:'public',table:'store_settings'},()=>loadSharedData())
+ .on('postgres_changes',{event:'*',schema:'public',table:'site_control'},()=>refreshSiteControl())
  .on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>loadOrdersRemote().catch(e=>console.error('Pesanan:',e)))
  .on('postgres_changes',{event:'*',schema:'public',table:'user_profiles'},()=>loadAdminUsers().catch(e=>console.error('Pengguna:',e)))
  .subscribe((status,error)=>{
   console.info('BLIYO Realtime:',status,error||'');
   if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.error('BLIYO Realtime gagal tersambung:',error);
  });
+ clearInterval(maintenancePollTimer);
+ maintenancePollTimer=setInterval(refreshSiteControl,20000);
+}
+async function refreshSiteControl(){
+ try{
+  const {data,error}=await supabaseClient.from('site_control').select('*').eq('id',1).maybeSingle();
+  if(error)throw error;
+  if(data){
+   const changed=!!siteControl.maintenance_enabled!==!!data.maintenance_enabled||siteControl.maintenance_message!==data.maintenance_message;
+   siteControl=data;
+   if(changed&&$('#view'))render();
+  }
+ }catch(e){console.error('Status maintenance:',e)}
+}
+async function saveMaintenanceSettings(enabled){
+ if(user?.id!==ADMIN_UID)return toast('Akses admin diperlukan.');
+ const message=$('#maintenanceMessage')?.value.trim()||'BLIYO MARKET sedang dalam pemeliharaan. Silakan kembali beberapa saat lagi.';
+ const btn=$('#maintenanceToggleBtn');
+ if(btn){btn.disabled=true;btn.textContent='Menyimpan...'}
+ try{
+  const {data,error}=await supabaseClient.from('site_control').update({maintenance_enabled:!!enabled,maintenance_message:message,updated_at:new Date().toISOString()}).eq('id',1).select('*').single();
+  if(error)throw error;
+  siteControl=data;
+  render();
+  toast(enabled?'Maintenance berhasil diaktifkan.':'Maintenance berhasil dinonaktifkan.');
+ }catch(e){toast('Gagal menyimpan maintenance: '+(e.message||'Periksa koneksi.'));if(btn){btn.disabled=false;btn.textContent=enabled?'Aktifkan maintenance':'Nonaktifkan maintenance'}}
 }
 
 /* DATABASE MEDIA - INDEXEDDB */
@@ -807,7 +838,7 @@ put('bl_user',user);setSession();
 await restoreProfileMedia();
 if(isAdmin)await loadAdminUsers().catch(e=>console.error(e));
 await loadOrdersRemote().catch(e=>console.error('Pesanan:',e));
-clearInterval(captchaTimer);navigate('home');toast('Login berhasil. Akun sudah tersambung ke server.');
+clearInterval(captchaTimer);navigate('home');toast(isAdmin?'Login admin berhasil.':'Login berhasil.');
 }
 
 function setSession(){
@@ -1087,6 +1118,10 @@ if(adminTab==='settings')return `<div class="panel"><h2>Pengaturan toko</h2>
 <div class="field"><label>Nama toko</label><input id="storeName" value="${esc(settings.store)}"></div>
 <div class="field"><label>Nomor WhatsApp admin</label><input id="storePhone" value="${esc(settings.phone)}"></div>
 <button class="primary" style="width:100%;margin-top:17px" onclick="saveSettings()">Simpan pengaturan</button></div>
+<div class="panel section"><div class="row"><div><h3>Mode Maintenance</h3><p class="muted" style="margin-top:6px">Saat aktif, semua pengguna biasa akan diarahkan ke halaman maintenance. Admin tetap bisa masuk.</p></div><span class="status ${siteControl.maintenance_enabled?'Ditolak':'Selesai'}">${siteControl.maintenance_enabled?'AKTIF':'NONAKTIF'}</span></div>
+<div class="field"><label>Pesan untuk pengunjung</label><textarea id="maintenanceMessage" maxlength="300" placeholder="Tulis pemberitahuan maintenance">${esc(siteControl.maintenance_message||'')}</textarea></div>
+<button id="maintenanceToggleBtn" class="${siteControl.maintenance_enabled?'btn':'primary'}" style="width:100%;margin-top:14px" onclick="saveMaintenanceSettings(${!siteControl.maintenance_enabled})">${siteControl.maintenance_enabled?'Nonaktifkan maintenance':'Aktifkan maintenance'}</button>
+<p class="upload-note">Perubahan tersimpan di database dan berlaku untuk semua perangkat. Status diperbarui otomatis.</p></div>
 <div class="panel section"><h3>Keamanan admin</h3><p class="muted" style="margin-top:8px">Gunakan menu Profil → Keamanan akun untuk mengganti password admin.</p></div>`;
 return '';
 }
@@ -1223,13 +1258,18 @@ saveSettingsRemote().then(()=>toast('Pengaturan berhasil disimpan.')).catch(e=>t
 }
 
 /* RENDER */
+function maintenancePage(){
+ const message=siteControl.maintenance_message||'BLIYO MARKET sedang dalam pemeliharaan. Silakan kembali beberapa saat lagi.';
+ return `<section class="fade" style="min-height:72vh;display:grid;place-items:center"><div class="panel" style="width:min(560px,100%);padding:30px 22px;text-align:center"><div style="width:76px;height:76px;border-radius:25px;background:var(--glass-strong);display:grid;place-items:center;margin:0 auto 20px;color:var(--accent)"><svg viewBox="0 0 24 24" style="width:38px;height:38px"><path d="M14.7 6.3a5 5 0 0 0-6.9 6.9L3 18l3 3 4.8-4.8a5 5 0 0 0 6.9-6.9l-3 3-3-3 3-3z"/><path d="m14 10 3 3"/></svg></div><div class="eyebrow">BLIYO MARKET</div><h1 style="font-size:27px;margin-top:10px">Sedang Dalam Maintenance</h1><p class="muted" style="font-size:13px;margin:12px auto 0;max-width:410px">${esc(message)}</p><div class="status" style="display:inline-block;margin-top:20px">Situs sementara tidak tersedia</div><p class="muted" style="margin-top:17px">Halaman akan diperbarui otomatis setelah maintenance selesai.</p>${user?'<button class="btn" style="margin-top:18px" onclick="logout()">Keluar akun</button>':'<button class="primary" style="margin-top:18px" onclick="navigate(\'login\')">Login Admin</button>'}</div></section>`;
+}
 function render(){
 clearInterval(bannerTimer);clearTimeout(bannerTransitionTimer);
-let isAdmin=current==='admin';
+const blocked=!!siteControl.maintenance_enabled&&user?.id!==ADMIN_UID&&current!=='login';
+let isAdmin=current==='admin'||blocked;
 $('#bottomNav').classList.toggle('hidden',isAdmin);
 document.querySelectorAll('.navitem').forEach(el=>el.classList.toggle('active',el.dataset.page===current));
 let pages={home:homePage,categories:categoriesPage,products:productsPage,history:historyPage,profile:profilePage,login:loginPage,register:registerPage,editprofile:editProfilePage,password:passwordPage,admin:renderAdmin,search:searchPage};
-$('#view').innerHTML=(pages[current]||homePage)();
+$('#view').innerHTML=blocked?maintenancePage():(pages[current]||homePage)();
 $('#view').setAttribute('aria-busy','false');
 $('#view').classList.remove('page-enter');void $('#view').offsetWidth;$('#view').classList.add('page-enter');
 if(current==='home')startBanners();
