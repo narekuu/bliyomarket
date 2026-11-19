@@ -77,6 +77,8 @@ h1,h2,h3{letter-spacing:-.7px}
 .product{display:inline-block;width:100%;margin:0 0 15px;vertical-align:top;break-inside:avoid;page-break-inside:avoid;background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:21px;overflow:hidden;transition:transform .25s,box-shadow .25s;box-shadow:0 7px 25px rgba(35,50,70,.05)}
 .product-image{height:160px;background:var(--bg);position:relative}
 .product-badge{position:absolute;top:9px;left:9px;z-index:2;padding:5px 9px;border-radius:7px;color:#fff;font-size:10px;font-weight:800;letter-spacing:.55px;line-height:1;text-transform:uppercase;box-shadow:0 3px 10px rgba(0,0,0,.18);max-width:calc(100% - 18px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+.product-discount{position:absolute;top:9px;right:9px;z-index:2;padding:6px 8px;border-radius:7px;background:#ef4444;color:#fff;font-size:10px;font-weight:900;line-height:1;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.price-old{font-size:11px;color:var(--muted);text-decoration:line-through;margin-top:9px}.price-sale{font-size:17px;font-weight:850;color:#ef4444;margin-top:2px}.palette-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.palette-chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--glass);color:var(--text);border-radius:12px;padding:7px 9px;font-size:11px}.palette-dot{width:15px;height:15px;border-radius:5px;display:inline-block;flex:none}
 .product-image img{width:100%;height:100%;object-fit:cover;display:block}
 .product-info{padding:14px}
 .product-info h3{font-size:13px;margin:8px 0}
@@ -740,9 +742,15 @@ put('bl_products',products);put('bl_categories',categories);put('bl_banners',ban
 }
 
 /* DATA TOKO BERSAMA - SUPABASE */
-function productToRow(p){return {id:Number(p.id),name:p.name,category:p.category||'',price:Number(p.price)||0,min_qty:Number(p.minQty)||1,max_qty:Number(p.maxQty)||99,rating:Number(p.rating)||0,sold:Number(p.sold)||0,image:p.image||'',description:p.description||'',badge_text:p.badgeText||'',badge_color:safeBadgeColor(p.badgeColor),updated_at:new Date().toISOString()}}
-function rowToProduct(p){return {id:Number(p.id),name:p.name,category:p.category||'',price:Number(p.price)||0,minQty:Number(p.min_qty)||1,maxQty:Number(p.max_qty)||99,rating:Number(p.rating)||0,sold:Number(p.sold)||0,image:p.image||'',description:p.description||'',badgeText:p.badge_text||'',badgeColor:safeBadgeColor(p.badge_color)}}
+function productToRow(p){return {id:Number(p.id),name:p.name,category:p.category||'',price:Number(p.price)||0,min_qty:Number(p.minQty)||1,max_qty:Number(p.maxQty)||99,rating:Number(p.rating)||0,sold:Number(p.sold)||0,image:p.image||'',description:p.description||'',badge_text:p.badgeText||'',badge_color:safeBadgeColor(p.badgeColor),discount_percent:Math.max(0,Math.min(99,Number(p.discountPercent)||0)),updated_at:new Date().toISOString()}}
+function rowToProduct(p){return {id:Number(p.id),name:p.name,category:p.category||'',price:Number(p.price)||0,minQty:Number(p.min_qty)||1,maxQty:Number(p.max_qty)||99,rating:Number(p.rating)||0,sold:Number(p.sold)||0,image:p.image||'',description:p.description||'',badgeText:p.badge_text||'',badgeColor:safeBadgeColor(p.badge_color),discountPercent:Math.max(0,Math.min(99,Number(p.discount_percent)||0))}}
 function safeBadgeColor(value){return /^#[0-9a-f]{6}$/i.test(String(value||''))?String(value):'#2563eb'}
+function discountedPrice(p){let pct=Math.max(0,Math.min(99,Number(p?.discountPercent)||0));return Math.round((Number(p?.price)||0)*(100-pct)/100)}
+function labelPalette(){return Array.isArray(settings.labelColors)?settings.labelColors:[]}
+async function saveLabelPalette(){try{await saveSettingsRemote();persist();toast('Palet warna berhasil disimpan dan disinkronkan.')}catch(e){toast('Gagal menyimpan palet: '+e.message)}}
+async function addLabelColor(){let name=$('#labelColorName')?.value.trim(),color=safeBadgeColor($('#labelColorValue')?.value);if(!name)return toast('Isi nama warna terlebih dahulu.');let list=labelPalette();if(list.some(x=>x.name.toLowerCase()===name.toLowerCase()))return toast('Nama warna sudah ada.');settings.labelColors=[...list,{id:Date.now(),name:name.slice(0,24),color}];await saveLabelPalette();render()}
+function useLabelColor(color){let el=$('#pBadgeColor');if(el)el.value=safeBadgeColor(color)}
+function deleteLabelColor(id){let item=labelPalette().find(x=>String(x.id)===String(id));if(!item)return;confirmDialog('Hapus warna tersimpan?','Warna '+item.name+' akan dihapus dari palet. Label produk yang sudah memakai warna ini tidak akan berubah.',async()=>{settings.labelColors=labelPalette().filter(x=>String(x.id)!==String(id));await saveLabelPalette();render()})}
 async function loadSharedData(){
  try{
   const [pr,ca,ba,se,sc]=await Promise.all([
@@ -782,7 +790,7 @@ async function loadSharedData(){
    }
    if(seed.length){const w=await supabaseClient.from('banners').insert(seed);if(w.error)throw w.error;}
   }else if(ba.data.length)banners=ba.data.map(b=>({id:b.id,image:b.image,link:b.link}));
-  if(se.data)settings={store:se.data.store,phone:se.data.phone};
+  if(se.data)settings={store:se.data.store,phone:se.data.phone,labelColors:Array.isArray(se.data.label_colors)?se.data.label_colors:[]};
   else if(admin){const w=await supabaseClient.from('store_settings').upsert({id:1,store:settings.store||'BLIYO MARKET',phone:settings.phone||''});if(w.error)throw w.error;}
   persist();
   if($('#view'))render();
@@ -819,7 +827,7 @@ async function saveBannersRemote(){
  if(rows.length){const i=await supabaseClient.from('banners').insert(rows);if(i.error)throw i.error;}
 }
 async function saveSettingsRemote(){
- const {error}=await supabaseClient.from('store_settings').upsert({id:1,store:settings.store,phone:settings.phone,updated_at:new Date().toISOString()});
+ const {error}=await supabaseClient.from('store_settings').upsert({id:1,store:settings.store,phone:settings.phone,label_colors:Array.isArray(settings.labelColors)?settings.labelColors:[],updated_at:new Date().toISOString()});
  if(error)throw error;
 }
 async function loadOrdersRemote(){
@@ -1163,12 +1171,12 @@ return g+' · '+t+' WIB · Asia/Jakarta';
 /* PRODUCT */
 function productCard(p){
 return `<article class="product">
-<div class="product-image"><img src="${esc(productImage(p))}" alt="${esc(p.name)}" loading="lazy">${p.badgeText?`<span class="product-badge" style="background:${safeBadgeColor(p.badgeColor)}">${esc(p.badgeText)}</span>`:''}</div>
+<div class="product-image"><img src="${esc(productImage(p))}" alt="${esc(p.name)}" loading="lazy">${p.badgeText?`<span class="product-badge" style="background:${safeBadgeColor(p.badgeColor)}">${esc(p.badgeText)}</span>`:'' }${Number(p.discountPercent)>0?`<span class="product-discount">-${Math.max(0,Math.min(99,Number(p.discountPercent)))}%</span>`:''}</div>
 <div class="product-info">
 <div class="product-meta"><span>${esc(p.category)}</span><span>★ ${esc(p.rating)}</span></div>
 <h3>${esc(p.name)}</h3>
 <p class="product-description">${esc(p.description)}</p>
-<div class="price">${money(p.price)}</div>
+${Number(p.discountPercent)>0?`<div class="price-old">${money(p.price)}</div><div class="price-sale">${money(discountedPrice(p))}</div>`:`<div class="price">${money(p.price)}</div>`}
 <p class="muted">Min. ${p.minQty||1} · Maks. ${p.maxQty||99}</p>
 <button class="primary buy" onclick="openBuy(${p.id})">Pesan sekarang</button>
 </div></article>`;
@@ -1302,9 +1310,9 @@ $('#modalRoot').innerHTML=`<div class="modal-backdrop order-modal-backdrop" oncl
 ${orderImage?`<img class="modal-image" src="${esc(orderImage)}" onerror="this.remove()">`:``}
 <h2 style="font-size:19px">${esc(p.name)}</h2>
 <p class="modal-description" style="margin-top:7px">${esc(p.description)}</p>
-<div class="row" style="margin-top:15px"><span class="muted">Harga satuan</span><strong>${money(p.price)}</strong></div>
+<div class="row" style="margin-top:15px"><span class="muted">Harga satuan</span><div style="text-align:right">${Number(p.discountPercent)>0?`<div class="price-old">${money(p.price)}</div><strong style="color:#ef4444">${money(discountedPrice(p))} <small>-${p.discountPercent}%</small></strong>`:`<strong>${money(p.price)}</strong>`}</div></div>
 <div class="field"><label>Jumlah pembelian</label><div class="quantity"><button onclick="changeQty(-1)">−</button><input id="buyerQty" type="number" inputmode="numeric" min="${min}" max="${max}" value="${min}" oninput="updateTotal()" onblur="normalizeQty()"><button onclick="changeQty(1)">+</button></div><p class="muted" style="margin-top:7px">Minimal ${min} · Maksimal ${max}</p></div>
-<div class="row" style="margin-top:16px;padding:14px;background:var(--glass);border-radius:13px"><strong>Total pembayaran</strong><strong id="buyTotal">${money(p.price*min)}</strong></div>
+<div class="row" style="margin-top:16px;padding:14px;background:var(--glass);border-radius:13px"><strong>Total pembayaran</strong><strong id="buyTotal">${money(discountedPrice(p)*min)}</strong></div>
 <div class="field"><label>Pesan tambahan (opsional)</label><textarea id="extraMessage" placeholder="Tuliskan pesan, pertanyaan, atau permintaan khusus..."></textarea></div>
 <button class="primary" style="width:100%;margin-top:17px" onclick="sendWhatsApp()">Lanjut ke WhatsApp</button>
 <p class="muted" style="text-align:center;margin-top:11px">Kamu akan diarahkan langsung ke WhatsApp admin.</p>
@@ -1323,7 +1331,7 @@ input.value=Math.max(min,Math.min(max,n===null?min:n));updateTotal();
 }
 function updateTotal(){
 let qty=getQty(),total=$('#buyTotal');if(!total||!selectedProduct)return;
-total.textContent=qty===null?'Masukkan jumlah':money(selectedProduct.price*qty);
+total.textContent=qty===null?'Masukkan jumlah':money(discountedPrice(selectedProduct)*qty);
 }
 async function sendWhatsApp(){
 let p=selectedProduct;if(!p)return;
@@ -1331,8 +1339,8 @@ let qty=getQty(),min=Math.max(1,Number(p.minQty)||1),max=Math.max(min,Number(p.m
 if(qty===null||qty<min||qty>max)return toast(`Jumlah harus ${min} sampai ${max}.`);
 if(!settings.phone)return toast('Nomor WhatsApp admin belum diatur.');
 if(!user?.id)return toast('Login ulang dengan akun online sebelum memesan.');
-let orderId=makeOrderId(),total=p.price*qty,additional=$('#extraMessage')?.value.trim()||'',date=new Date().toLocaleString('id-ID');
-const row={id:orderId,user_id:user.id,name:user.name,email:user.email,product:p.name,price:p.price,qty,total,status:'Menunggu',date_label:date,message:additional};
+let unitPrice=discountedPrice(p),orderId=makeOrderId(),total=unitPrice*qty,additional=$('#extraMessage')?.value.trim()||'',date=new Date().toLocaleString('id-ID');
+const row={id:orderId,user_id:user.id,name:user.name,email:user.email,product:p.name,price:unitPrice,qty,total,status:'Menunggu',date_label:date,message:additional};
 const {error}=await supabaseClient.from('orders').insert(row);
 if(error)return toast('Pesanan gagal disimpan: '+error.message);
 orders.unshift({...row,date});p.sold=(p.sold||0)+qty;persist();
@@ -1346,7 +1354,7 @@ Detail Pemesanan
 ID Pesanan: ${orderId}
 Nama: ${user.name}
 Produk: ${p.name}
-Harga: ${money(p.price)}
+Harga: ${money(unitPrice)}
 Jumlah: ${qty}`+(additional?`\n\n> Pesan Tambahan:\n\n${additional}`:'')+`\n\nMohon bantuannya untuk memproses pesanan saya. Terima kasih atas perhatian dan pelayanannya, Admin! 🙏`;
 let phone=settings.phone.replace(/\D/g,''),url='https://wa.me/'+phone+'?text='+encodeURIComponent(message);
 closeModal();window.location.href=url;
@@ -1802,6 +1810,8 @@ if(adminTab==='products')return `<div class="panel">
 <div class="field"><label>Deskripsi</label><textarea id="pDesc" placeholder="Deskripsi produk"></textarea></div>
 <div class="field"><label>Label card (opsional)</label><input id="pBadgeText" maxlength="18" placeholder="NEW, SOLD, HOT, atau lainnya"></div>
 <div class="field"><label>Warna label</label><div style="display:flex;align-items:center;gap:12px"><input id="pBadgeColor" type="color" value="#2563eb" style="width:58px;height:42px;padding:3px;border-radius:10px"><span class="muted">Pilih warna background label</span></div></div>
+<div class="field"><label>Palet warna tersimpan</label><div class="palette-list">${labelPalette().map(c=>'<span class="palette-chip"><button type="button" style="border:0;background:none;color:inherit;padding:0;display:flex;align-items:center;gap:7px" onclick="useLabelColor(&quot;'+safeBadgeColor(c.color)+'&quot;)"><i class="palette-dot" style="background:'+safeBadgeColor(c.color)+'"></i>'+esc(c.name)+'</button><button type="button" class="danger" style="border:0;background:none;padding:2px 4px" onclick="deleteLabelColor(&quot;'+String(c.id)+'&quot;)">×</button></span>').join('')||'<span class="muted">Belum ada warna tersimpan.</span>'}</div><div style="display:grid;grid-template-columns:1fr 58px auto;gap:8px;margin-top:10px"><input id="labelColorName" placeholder="Nama warna, mis. Ungu"><input id="labelColorValue" type="color" value="#8b5cf6" style="width:58px;height:42px;padding:3px;border-radius:10px"><button type="button" class="btn" onclick="addLabelColor()">Simpan</button></div></div>
+<div class="field"><label>Diskon (%)</label><input id="pDiscount" type="number" min="0" max="99" step="1" value="0" placeholder="Contoh: 20"><p class="upload-note">Isi 0 jika tidak ada diskon. Harga setelah diskon dihitung otomatis.</p></div>
 <div class="field"><label>Foto produk</label><label class="file-label" for="pImageFile">＋ Upload foto atau GIF dari perangkat</label><input id="pImageFile" type="file" accept="image/*,.gif" hidden onchange="previewProductImage(this)"><img id="pImagePreview" class="upload-preview" src="https://placehold.co/700x350/e9edf3/66768b?text=Preview+Produk"><p class="upload-note">Mendukung JPG, PNG, WEBP, dan GIF animasi. Maksimal 25 MB.</p></div>
 <div class="field"><label>Atau URL gambar (opsional)</label><input id="pImageUrl" placeholder="https://..."></div>
 <button class="primary" style="width:100%;margin-top:17px" onclick="saveProduct()">Simpan produk</button>
@@ -1906,7 +1916,7 @@ if(file){
  try{const localBlob=await readMedia(imageKey);if(localBlob)image=await uploadSharedMedia(localBlob,'products')}
  catch(e){toast('Gagal memindahkan gambar produk ke penyimpanan online: '+e.message);return}
 }
-let data={name,category:$('#pCategory').value,price,minQty:min,maxQty:max,rating:Math.max(0,Math.min(5,Number($('#pRating').value)||5)),description:$('#pDesc').value.trim(),image,imageKey,badgeText:$('#pBadgeText').value.trim().slice(0,18),badgeColor:safeBadgeColor($('#pBadgeColor').value)};
+let data={name,category:$('#pCategory').value,price,minQty:min,maxQty:max,rating:Math.max(0,Math.min(5,Number($('#pRating').value)||5)),description:$('#pDesc').value.trim(),image,imageKey,badgeText:$('#pBadgeText').value.trim().slice(0,18),badgeColor:safeBadgeColor($('#pBadgeColor').value),discountPercent:Math.max(0,Math.min(99,Math.round(Number($('#pDiscount').value)||0)))};
 if(old){Object.assign(old,data);toast('Produk berhasil diperbarui.')}
 else{products.unshift({id:Date.now(),...data,sold:0});toast('Produk berhasil ditambahkan.')}
 persist();
@@ -1918,7 +1928,7 @@ let p=products.find(x=>x.id===id);if(!p)return;
 $('#pId').value=p.id;$('#pName').value=p.name;$('#pCategory').value=p.category;$('#pCategoryLabel').textContent=p.category;
 $('#pPrice').value=p.price;$('#pMin').value=p.minQty||1;$('#pMax').value=p.maxQty||99;
 $('#pRating').value=p.rating;$('#pDesc').value=p.description;
-$('#pBadgeText').value=p.badgeText||'';$('#pBadgeColor').value=safeBadgeColor(p.badgeColor);
+$('#pBadgeText').value=p.badgeText||'';$('#pBadgeColor').value=safeBadgeColor(p.badgeColor);$('#pDiscount').value=Math.max(0,Math.min(99,Number(p.discountPercent)||0));
 $('#pImageUrl').value=p.image||'';
 $('#pImagePreview').src=productImage(p);
 $('#pImageFile').value='';
@@ -1926,7 +1936,7 @@ window.scrollTo({top:0,behavior:'smooth'});
 }
 function resetProductForm(){
 ['pId','pName','pPrice','pDesc','pImageUrl','pCategory','pBadgeText'].forEach(id=>$('#'+id).value='');
-$('#pBadgeColor').value='#2563eb';
+$('#pBadgeColor').value='#2563eb';$('#pDiscount').value=0;
 $('#pCategoryLabel').textContent='Pilih kategori ▾';
 $('#pRating').value=5;$('#pMin').value=1;$('#pMax').value=99;
 $('#pImageFile').value='';$('#pImagePreview').src='https://placehold.co/700x350/e9edf3/66768b?text=Preview+Produk';
