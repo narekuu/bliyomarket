@@ -648,6 +648,10 @@ BLIYO MARKET
 </header>
 <main id="view" aria-busy="true"></main>
 </div>
+<script>
+/* Header dipindahkan langsung ke body agar fixed tidak ikut area scroll .app di Android. */
+(()=>{const header=document.querySelector('.topbar');if(header&&header.parentElement!==document.body)document.body.insertBefore(header,document.body.firstChild)})();
+</script>
 
 <nav class="bottomnav glass" id="bottomNav">
 <span class="nav-indicator" id="navIndicator" aria-hidden="true"></span>
