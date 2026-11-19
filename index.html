@@ -1182,8 +1182,10 @@ function adminHeader(){
 return `<div class="admin-heading row" style="margin-bottom:20px;flex-wrap:wrap"><div><div class="eyebrow">BLIYO MANAGEMENT SYSTEM</div><h1 style="font-size:27px;margin-top:7px">Dashboard Admin</h1><p class="muted">Kelola toko digital BLIYO MARKET.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">${user?.id===ADMIN_UID?'<button class="btn" id="backupBtn" onclick="runBackup()">Cadangkan ke Cloudflare</button>':''}<button class="btn" onclick="navigate('profile')">Profil ↗</button></div></div>`;
 }
 function renderAdmin(){
+const isOwner=user?.id===ADMIN_UID;
+if(!isOwner&&['sync','users','admins','settings'].includes(adminTab))adminTab='overview';
 return `<section class="fade">${adminHeader()}<div class="admin-tabs">
-${[['overview','Ringkasan'],...(user?.id===ADMIN_UID?[['sync','Sinkronisasi']]:[]),['products','Produk'],['categories','Kategori'],['banners','Banner'],['orders','Pesanan'],['users','Pengguna'],...(user?.id===ADMIN_UID?[['admins','Manajemen Admin']]:[]),['settings','Pengaturan']].map(([k,v])=>`<button class="admin-tab ${adminTab===k?'active':''}" onclick="adminTab='${k}';render()">${v}</button>`).join('')}
+${[['overview','Ringkasan'],...(isOwner?[['sync','Sinkronisasi']]:[]),['products','Produk'],['categories','Kategori'],['banners','Banner'],['orders','Pesanan'],...(isOwner?[['users','Pengguna'],['admins','Manajemen Admin'],['settings','Pengaturan']]:[])].map(([k,v])=>`<button class="admin-tab ${adminTab===k?'active':''}" onclick="adminTab='${k}';render()">${v}</button>`).join('')}
 </div><div>${adminContent()}</div></section>`;
 }
 
