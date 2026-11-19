@@ -550,6 +550,35 @@ body{
 @media(prefers-reduced-motion:reduce){
  .wallpaper *{animation:none!important;transition:none!important}
 }
+/* DISTINCTIVE ADMIN BURGER SIDEBAR */
+.admin-menu-trigger{display:flex;align-items:center;gap:11px;padding:11px 15px;border:1px solid rgba(255,255,255,.62);border-radius:17px;background:linear-gradient(135deg,rgba(255,255,255,.72),rgba(255,255,255,.28));color:#20364d;box-shadow:0 8px 24px rgba(20,65,110,.13),inset 0 1px 1px #fff;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);font-weight:800}
+.admin-menu-trigger .burger-mark{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#1d9bd5,#3569b5);color:white;box-shadow:0 5px 13px rgba(25,112,177,.28)}
+.admin-menu-trigger svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.admin-menu-trigger small{display:block;font-size:9px;font-weight:600;opacity:.62;text-align:left;margin-top:2px}
+.admin-drawer-backdrop{position:fixed;inset:0;z-index:90;background:rgba(8,23,42,.34);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .28s}
+.admin-drawer{position:fixed;z-index:91;left:12px;top:12px;bottom:12px;width:min(310px,calc(100vw - 42px));padding:17px;border-radius:28px;overflow:auto;color:#20364d;background:linear-gradient(155deg,rgba(248,253,255,.94),rgba(216,239,249,.86) 48%,rgba(237,232,255,.9));border:1px solid rgba(255,255,255,.88);box-shadow:0 28px 80px rgba(4,28,55,.3),inset 0 1px 1px #fff;backdrop-filter:blur(32px) saturate(160%);-webkit-backdrop-filter:blur(32px) saturate(160%);transform:translateX(calc(-100% - 24px)) scale(.97);transition:transform .38s cubic-bezier(.2,.85,.2,1)}
+.admin-drawer-open .admin-drawer-backdrop{opacity:1;pointer-events:auto}
+.admin-drawer-open .admin-drawer{transform:translateX(0) scale(1)}
+.admin-drawer-head{padding:17px;border-radius:21px;background:linear-gradient(135deg,#147eb5,#315ca4 58%,#755fb5);color:white;position:relative;overflow:hidden;box-shadow:0 12px 28px rgba(34,93,151,.22)}
+.admin-drawer-head:after{content:"";position:absolute;width:150px;height:150px;border:1px solid rgba(255,255,255,.2);border-radius:50%;right:-55px;top:-80px;box-shadow:0 0 0 18px rgba(255,255,255,.06),0 0 0 38px rgba(255,255,255,.04)}
+.admin-drawer-head strong{font-size:17px;letter-spacing:1.4px}
+.admin-drawer-head small{display:block;margin-top:5px;color:rgba(255,255,255,.76);font-size:10px}
+.admin-drawer-close{position:absolute;right:12px;top:12px;width:31px;height:31px;border:1px solid rgba(255,255,255,.3);border-radius:11px;background:rgba(255,255,255,.15);color:white;font-size:20px;z-index:1}
+.admin-drawer-label{margin:21px 8px 9px;font-size:9px;font-weight:900;letter-spacing:1.6px;color:#71879b}
+.admin-drawer-nav{display:grid;gap:6px}
+.admin-drawer-link{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border:1px solid transparent;border-radius:16px;background:transparent;color:#36516a;text-align:left;font-weight:750;font-size:12px;transition:.22s}
+.admin-drawer-link svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.admin-drawer-link .drawer-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;background:rgba(255,255,255,.65);box-shadow:inset 0 1px 1px #fff}
+.admin-drawer-link.active{color:#fff;background:linear-gradient(110deg,#168fc6,#416bb6 65%,#7865b9);border-color:rgba(255,255,255,.65);box-shadow:0 8px 18px rgba(44,112,172,.23),inset 0 1px 1px rgba(255,255,255,.35)}
+.admin-drawer-link.active .drawer-icon{background:rgba(255,255,255,.2);box-shadow:inset 0 1px 1px rgba(255,255,255,.22)}
+.admin-drawer-link:active{transform:scale(.975)}
+.admin-drawer-foot{margin-top:22px;padding:13px;border-radius:17px;background:rgba(255,255,255,.54);border:1px solid rgba(255,255,255,.8);font-size:10px;color:#657b90}
+body.dark .admin-drawer{background:linear-gradient(155deg,rgba(23,42,61,.97),rgba(24,48,70,.95) 48%,rgba(48,42,75,.95));color:#edf6ff;border-color:rgba(255,255,255,.18)}
+body.dark .admin-drawer-label{color:#9eb4c9}
+body.dark .admin-drawer-link{color:#d6e6f4}
+body.dark .admin-drawer-link .drawer-icon,body.dark .admin-drawer-foot{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.13);color:#d6e6f4}
+body.dark .admin-menu-trigger{background:rgba(20,38,57,.82);color:#eff7ff;border-color:rgba(255,255,255,.2)}
+@media(min-width:760px){.admin-drawer{left:20px;top:20px;bottom:20px;width:320px}}
 </style>
 </head>
 
@@ -614,7 +643,7 @@ let categories=get('bl_categories',['Aplikasi Premium','Nokos','Jasa Edit','Jasa
 let banners=get('bl_banners',[]);
 let orders=get('bl_orders',[]);
 let settings=get('bl_settings',{phone:'6281234567890',store:'BLIYO MARKET'});
-let current='home',adminTab='overview',bannerIndex=0,bannerTimer=null,bannerTransitionTimer=null;
+let current='home',adminTab='overview',adminMenuOpen=false,bannerIndex=0,bannerTimer=null,bannerTransitionTimer=null;
 let siteControl={id:1,maintenance_enabled:false,maintenance_message:'BLIYO MARKET sedang dalam pemeliharaan. Silakan kembali beberapa saat lagi.'};
 let maintenancePollTimer=null;
 let selectedProduct=null,captcha={code:'',expires:0,timer:null};
@@ -1585,15 +1614,29 @@ toast('Cadangan Cloudflare selesai. '+summary);
 }catch(error){toast('Cadangan gagal: '+error.message);}
 finally{if(btn){btn.disabled=false;btn.textContent='Cadangkan ke Cloudflare';}}
 }
+function toggleAdminMenu(force){
+adminMenuOpen=typeof force==='boolean'?force:!adminMenuOpen;
+document.body.classList.toggle('admin-drawer-open',adminMenuOpen);
+}
+function chooseAdminTab(key){
+adminTab=key;toggleAdminMenu(false);render();
+}
 function adminHeader(){
-return `<div class="admin-heading row" style="margin-bottom:20px;flex-wrap:wrap"><div><div class="eyebrow">BLIYO MANAGEMENT SYSTEM</div><h1 style="font-size:27px;margin-top:7px">Dashboard Admin</h1><p class="muted">Kelola toko digital BLIYO MARKET.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">${user?.id===ADMIN_UID?'<button class="btn" id="backupBtn" onclick="runBackup()">Cadangkan ke Cloudflare</button>':''}<button class="btn" onclick="navigate('profile')">Profil ↗</button></div></div>`;
+return `<div class="admin-heading row" style="margin-bottom:20px;flex-wrap:wrap;align-items:center"><div><div class="eyebrow">BLIYO MANAGEMENT SYSTEM</div><h1 style="font-size:27px;margin-top:7px">Dashboard Admin</h1><p class="muted">Kelola toko digital BLIYO MARKET.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="admin-menu-trigger" onclick="toggleAdminMenu()" aria-label="Buka menu admin"><span class="burger-mark"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span>MENU ADMIN<small>Navigasi panel</small></span></button>${user?.id===ADMIN_UID?'<button class="btn" id="backupBtn" onclick="runBackup()">Cadangkan ke Cloudflare</button>':''}<button class="btn" onclick="navigate('profile')">Profil ↗</button></div></div>`;
 }
 function renderAdmin(){
 const isOwner=user?.id===ADMIN_UID;
 if(!isOwner&&['sync','users','admins','settings'].includes(adminTab))adminTab='overview';
-return `<section class="fade">${adminHeader()}<div class="admin-tabs">
-${[['overview','Ringkasan'],...(isOwner?[['sync','Sinkronisasi']]:[]),['products','Produk'],['categories','Kategori'],['banners','Banner'],['orders','Pesanan'],...(isOwner?[['users','Pengguna'],['admins','Manajemen Admin'],['settings','Pengaturan']]:[])].map(([k,v])=>`<button class="admin-tab ${adminTab===k?'active':''}" onclick="adminTab='${k}';render()">${v}</button>`).join('')}
-</div><div>${adminContent()}</div></section>`;
+const items=[['overview','Ringkasan','<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'],...(isOwner?[['sync','Sinkronisasi','<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.8-2L20 12M4 12l2.6 5a7 7 0 0 0 11.8-2"/>']]:[]),['products','Produk','<path d="M3 7h18l-2 14H5L3 7Z"/><path d="M8 7a4 4 0 0 1 8 0"/>'],['categories','Kategori','<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>'],['banners','Banner','<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/>'],['orders','Pesanan','<path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/>'],...(isOwner?[['users','Pengguna','<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/>'],['admins','Manajemen Admin','<path d="M12 3 4 6v5c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-3Z"/><path d="m9 12 2 2 4-4"/>'],['settings','Pengaturan','<circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.4-2.4L7.5 15a8 8 0 0 1 0-1.9L6.1 12l1.4-2.4 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.9Z"/>']]:[])];
+return `<section class="fade">${adminHeader()}
+<div class="admin-drawer-backdrop" onclick="toggleAdminMenu(false)"></div>
+<aside class="admin-drawer" aria-label="Menu navigasi admin">
+<div class="admin-drawer-head"><button class="admin-drawer-close" onclick="toggleAdminMenu(false)" aria-label="Tutup menu">×</button><strong>BLIYO <span style="font-weight:400">CONTROL</span></strong><small>Management console · ${isOwner?'OWNER ACCESS':'ADMIN ACCESS'}</small></div>
+<div class="admin-drawer-label">WORKSPACE</div><nav class="admin-drawer-nav">${items.slice(0,6).map(([k,v,ic])=>`<button class="admin-drawer-link ${adminTab===k?'active':''}" onclick="chooseAdminTab('${k}')"><span class="drawer-icon"><svg viewBox="0 0 24 24">${ic}</svg></span><span>${v}</span>${adminTab===k?'<span style="margin-left:auto;font-size:17px">›</span>':''}</button>`).join('')}</nav>
+${isOwner?'<div class="admin-drawer-label">OWNER TOOLS</div><nav class="admin-drawer-nav">'+items.slice(6).map(([k,v,ic])=>`<button class="admin-drawer-link ${adminTab===k?'active':''}" onclick="chooseAdminTab('${k}')"><span class="drawer-icon"><svg viewBox="0 0 24 24">${ic}</svg></span><span>${v}</span>${adminTab===k?'<span style="margin-left:auto;font-size:17px">›</span>':''}</button>`).join('')+'</nav>':''}
+<div class="admin-drawer-foot">✦ BLIYO MARKET <span style="float:right">v1 · Secure panel</span></div>
+</aside>
+<div>${adminContent()}</div></section>`;
 }
 
 async function loadCloudflareSyncStatus(){
