@@ -898,7 +898,7 @@ let email=$('#loginEmail').value.trim().toLowerCase(),pass=$('#loginPassword').v
 if(!email||!pass)return toast('Masukkan email dan password.');
 let {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
 let migratedLegacy=null;
-if(!error)clearMigrationState(email);
+if(!error){clearMigrationState(email);pendingVerificationEmail='';localStorage.removeItem('bl_pending_verification_email');}
 if(error){
 const authMessage=String(error.message||'').toLowerCase();
 if(error.code==='email_not_confirmed'||authMessage.includes('email not confirmed')||authMessage.includes('email_not_confirmed')){
@@ -917,7 +917,8 @@ const mins=Math.ceil((queued.nextRetryAt-Date.now())/60000);
 return toast('Migrasi sedang dalam antrean. Coba lagi sekitar '+mins+' menit.');
 }
 if(queued?.state==='waiting_confirmation'){
-return toast('Akun sudah menunggu konfirmasi email. Periksa kotak masuk/spam, lalu login setelah konfirmasi.');
+ pendingVerificationEmail=email;put('bl_pending_verification_email',email);navigate('verify');
+ return toast('Akun menunggu konfirmasi email. Periksa Inbox atau Spam.');
 }
 const migrated=await supabaseClient.auth.signUp({email,password:pass,options:{data:{name:migratedLegacy.name||'Pengguna'},emailRedirectTo:'https://bliyomarket.vercel.app/'}});
 if(migrated.error){
@@ -929,8 +930,8 @@ return toast('Batas email Supabase tercapai. Akun aman dalam antrean; coba lagi 
 return toast('Akun lama belum bisa dipindahkan: '+message);
 }
 if(!migrated.data.session){
-setMigrationState(email,'waiting_confirmation');
-return toast('Akun sudah didaftarkan ke server. Periksa email termasuk folder spam, lalu konfirmasi sebelum login lagi.');
+setMigrationState(email,'waiting_confirmation');pendingVerificationEmail=email;put('bl_pending_verification_email',email);navigate('verify');
+return toast('Akun sudah didaftarkan. Konfirmasi email sebelum login.');
 }
 clearMigrationState(email);
 data=migrated.data;
@@ -1440,6 +1441,7 @@ try{await openMediaDB()}catch(e){console.error('Media DB:',e)}
 const {data:{session}}=await supabaseClient.auth.getSession();
 user=null;
 if(session?.user){
+if(session.user.email_confirmed_at){pendingVerificationEmail='';localStorage.removeItem('bl_pending_verification_email');}
 const authUser=session.user,isAdmin=authUser.id===ADMIN_UID||await checkAdminRole(session.access_token);
 const {data:profile}=isAdmin?{data:null}:await supabaseClient.from('user_profiles').select('name').eq('id',authUser.id).maybeSingle();
 let email=String(authUser.email||'').trim().toLowerCase();
