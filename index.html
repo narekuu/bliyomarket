@@ -1637,15 +1637,18 @@ toast('Password berhasil diperbarui.');navigate('profile');
 /* LOGOUT - TIDAK MENGHAPUS FOTO ATAU BANNER */
 async function logout(){
 if(user){saveAccountProfile();saveLastProfile();}
-await supabaseClient.auth.signOut();
-/* Hanya mengakhiri sesi login */
+const {error}=await supabaseClient.auth.signOut();
+if(error){toast('Gagal logout: '+error.message);return;}
+/* Akhiri sesi dan arahkan langsung ke halaman login. Data profil dan media tetap disimpan. */
 user=null;
 localStorage.removeItem('bl_user');
 localStorage.removeItem('bl_exp');
 sessionStorage.removeItem('bl_user');
-
-navigate('profile');
-toast('Berhasil logout. Foto Avatar dan Banner tetap tersimpan.');
+current='login';
+try{history.pushState({page:'login'},'','/login')}catch{history.pushState({page:'login'},'','#login')}
+render();
+window.scrollTo({top:0,behavior:'instant'});
+toast('Kamu sudah logout. Silakan login kembali.');
 }
 
 /* ADMIN */
@@ -1947,7 +1950,7 @@ saveSettingsRemote().then(()=>toast('Pengaturan berhasil disimpan.')).catch(e=>t
 /* RENDER */
 function maintenancePage(){
  const message=siteControl.maintenance_message||'BLIYO MARKET sedang dalam pemeliharaan. Silakan kembali beberapa saat lagi.';
- return `<section class="fade" style="min-height:72vh;display:grid;place-items:center"><div class="panel" style="width:min(560px,100%);padding:30px 22px;text-align:center"><div style="width:76px;height:76px;border-radius:25px;background:var(--glass-strong);display:grid;place-items:center;margin:0 auto 20px;color:var(--accent)"><svg viewBox="0 0 24 24" style="width:38px;height:38px"><path d="M14.7 6.3a5 5 0 0 0-6.9 6.9L3 18l3 3 4.8-4.8a5 5 0 0 0 6.9-6.9l-3 3-3-3 3-3z"/><path d="m14 10 3 3"/></svg></div><div class="eyebrow">BLIYO MARKET</div><h1 style="font-size:27px;margin-top:10px">Sedang Dalam Maintenance</h1><p class="muted" style="font-size:13px;margin:12px auto 0;max-width:410px">${esc(message)}</p><div class="status" style="display:inline-block;margin-top:20px">Situs sementara tidak tersedia</div><p class="muted" style="margin-top:17px">Halaman akan diperbarui otomatis setelah maintenance selesai.</p>${user?'<button class="btn" style="margin-top:18px" onclick="logout()">Keluar akun</button>':'<button class="primary" style="margin-top:18px" onclick="navigate(\'login\')">Login Admin</button>'}</div></section>`;
+ return `<section class="fade" style="min-height:72vh;display:grid;place-items:center"><div class="panel" style="width:min(560px,100%);padding:30px 22px;text-align:center"><div style="width:76px;height:76px;border-radius:25px;background:var(--glass-strong);display:grid;place-items:center;margin:0 auto 20px;color:var(--accent)"><svg viewBox="0 0 24 24" style="width:38px;height:38px"><path d="M14.7 6.3a5 5 0 0 0-6.9 6.9L3 18l3 3 4.8-4.8a5 5 0 0 0 6.9-6.9l-3 3-3-3 3-3z"/><path d="m14 10 3 3"/></svg></div><div class="eyebrow">BLIYO MARKET</div><h1 style="font-size:27px;margin-top:10px">Sedang Dalam Maintenance</h1><p class="muted" style="font-size:13px;margin:12px auto 0;max-width:410px">${esc(message)}</p><div class="status" style="display:inline-block;margin-top:20px">Situs sementara tidak tersedia</div><p class="muted" style="margin-top:17px">Halaman akan diperbarui otomatis setelah maintenance selesai.</p><button class="primary" style="margin-top:20px" onclick="location.reload()">Coba Lagi</button></div></section>`;
 }
 function render(options={}){
 clearInterval(bannerTimer);clearTimeout(bannerTransitionTimer);
