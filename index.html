@@ -397,34 +397,42 @@ body.dark .nav-indicator{background:linear-gradient(145deg,rgba(220,240,255,.3),
 }
 
 
-/* ABSTRACT OCEAN FLOW — FIXED LAYERED ANIMATED WALLPAPER */
-html,body{min-height:100%;background:#398fd4}
+/* ABSTRACT OCEAN FLOW — VIEWPORT-LOCKED WALLPAPER */
+html,body{
+ min-height:100%;
+ background:#398fd4;
+}
 html:has(body.dark),body.dark{background:#0b2850}
 body{
  position:relative;
  isolation:isolate;
  min-height:100vh;
  min-height:100svh;
+ background:transparent!important;
+}
+body.dark{background:transparent!important}
+.wallpaper{
+ position:fixed!important;
+ top:0!important;right:0!important;bottom:0!important;left:0!important;
+ width:100vw;
+ height:100vh;
+ height:100dvh;
+ overflow:hidden;
+ pointer-events:none;
+ z-index:0;
+ transform:translate3d(0,0,0);
  background:
   radial-gradient(ellipse at 8% 25%,#b5f3e5 0%,transparent 34%),
   radial-gradient(ellipse at 90% 15%,#1685ed 0%,transparent 42%),
   radial-gradient(ellipse at 45% 95%,#a6e8e0 0%,transparent 40%),
-  linear-gradient(135deg,#6cc4dc,#398fd4 48%,#0646a4)!important;
- background-attachment:fixed!important;
+  linear-gradient(135deg,#6cc4dc,#398fd4 48%,#0646a4);
 }
-body.dark{
+body.dark .wallpaper{
  background:
   radial-gradient(ellipse at 8% 25%,rgba(36,157,167,.25) 0%,transparent 36%),
   radial-gradient(ellipse at 90% 15%,rgba(20,103,194,.34) 0%,transparent 42%),
   radial-gradient(ellipse at 45% 95%,rgba(37,123,151,.2) 0%,transparent 40%),
-  linear-gradient(135deg,#102d4b,#0b2850 48%,#06152e)!important;
-}
-.wallpaper{
- position:fixed;
- inset:0;
- overflow:hidden;
- pointer-events:none;
- z-index:0;
+  linear-gradient(135deg,#102d4b,#0b2850 48%,#06152e);
 }
 .wallpaper .wave{
  position:absolute;
@@ -480,9 +488,7 @@ body.dark .wallpaper .shade{
  from{transform:translateX(-3%) scale(1)}
  to{transform:translateX(8%) scale(1.15)}
 }
-@media(prefers-reduced-motion:reduce){
- .wallpaper *{animation:none!important}
-}
+@media(prefers-reduced-motion:reduce){.wallpaper *{animation:none!important}}
 </style>
 </head>
 
