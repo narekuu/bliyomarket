@@ -749,7 +749,10 @@ function discountedPrice(p){let pct=Math.max(0,Math.min(99,Number(p?.discountPer
 function labelPalette(){return Array.isArray(settings.labelColors)?settings.labelColors:[]}
 async function saveLabelPalette(){try{await saveSettingsRemote();persist();toast('Palet warna berhasil disimpan dan disinkronkan.')}catch(e){toast('Gagal menyimpan palet: '+e.message)}}
 async function addLabelColor(){let name=$('#labelColorName')?.value.trim(),color=safeBadgeColor($('#labelColorValue')?.value);if(!name)return toast('Isi nama warna terlebih dahulu.');let list=labelPalette();if(list.some(x=>x.name.toLowerCase()===name.toLowerCase()))return toast('Nama warna sudah ada.');settings.labelColors=[...list,{id:Date.now(),name:name.slice(0,24),color}];await saveLabelPalette();render()}
-function useLabelColor(color){let el=$('#pBadgeColor');if(el)el.value=safeBadgeColor(color)}
+function syncBadgeHexFromPicker(){let picker=$('#pBadgeColor'),hex=$('#pBadgeColorHex');if(picker&&hex)hex.value=picker.value.toUpperCase()}
+function syncBadgePickerFromHex(){let hex=$('#pBadgeColorHex'),picker=$('#pBadgeColor');if(!hex||!picker)return;let value=hex.value.trim();if(/^#[0-9a-f]{6}$/i.test(value))picker.value=value}
+function currentBadgeColor(){let hex=$('#pBadgeColorHex')?.value.trim();return /^#[0-9a-f]{6}$/i.test(hex||'')?hex:safeBadgeColor($('#pBadgeColor')?.value)}
+function useLabelColor(color){let value=safeBadgeColor(color),el=$('#pBadgeColor'),hex=$('#pBadgeColorHex');if(el)el.value=value;if(hex)hex.value=value.toUpperCase()}
 function deleteLabelColor(id){let item=labelPalette().find(x=>String(x.id)===String(id));if(!item)return;confirmDialog('Hapus warna tersimpan?','Warna '+item.name+' akan dihapus dari palet. Label produk yang sudah memakai warna ini tidak akan berubah.',async()=>{settings.labelColors=labelPalette().filter(x=>String(x.id)!==String(id));await saveLabelPalette();render()})}
 async function loadSharedData(){
  try{
@@ -1809,7 +1812,7 @@ if(adminTab==='products')return `<div class="panel">
 <div class="field"><label>Rating</label><input id="pRating" type="number" min="0" max="5" step=".1" value="5.0" placeholder="Contoh: 5.0 atau 4.8"></div>
 <div class="field"><label>Deskripsi</label><textarea id="pDesc" placeholder="Deskripsi produk"></textarea></div>
 <div class="field"><label>Label card (opsional)</label><input id="pBadgeText" maxlength="18" placeholder="NEW, SOLD, HOT, atau lainnya"></div>
-<div class="field"><label>Warna label</label><div style="display:flex;align-items:center;gap:12px"><input id="pBadgeColor" type="color" value="#2563eb" style="width:58px;height:42px;padding:3px;border-radius:10px"><span class="muted">Pilih warna background label</span></div></div>
+<div class="field"><label>Warna label</label><div style="display:flex;align-items:center;gap:10px"><input id="pBadgeColor" type="color" value="#2563eb" oninput="syncBadgeHexFromPicker()" style="width:58px;height:42px;padding:3px;border-radius:10px;flex:none"><input id="pBadgeColorHex" type="text" value="#2563EB" maxlength="7" placeholder="#2563EB" oninput="syncBadgePickerFromHex()" style="flex:1;min-width:0;text-transform:uppercase"><span class="muted">Kode HEX</span></div><p class="upload-note">Masukkan kode warna seperti #FF5252 atau pilih warna dari kotak.</p></div>
 <div class="field"><label>Palet warna tersimpan</label><div class="palette-list">${labelPalette().map(c=>'<span class="palette-chip"><button type="button" style="border:0;background:none;color:inherit;padding:0;display:flex;align-items:center;gap:7px" onclick="useLabelColor(&quot;'+safeBadgeColor(c.color)+'&quot;)"><i class="palette-dot" style="background:'+safeBadgeColor(c.color)+'"></i>'+esc(c.name)+'</button><button type="button" class="danger" style="border:0;background:none;padding:2px 4px" onclick="deleteLabelColor(&quot;'+String(c.id)+'&quot;)">×</button></span>').join('')||'<span class="muted">Belum ada warna tersimpan.</span>'}</div><div style="display:grid;grid-template-columns:1fr 58px auto;gap:8px;margin-top:10px"><input id="labelColorName" placeholder="Nama warna, mis. Ungu"><input id="labelColorValue" type="color" value="#8b5cf6" style="width:58px;height:42px;padding:3px;border-radius:10px"><button type="button" class="btn" onclick="addLabelColor()">Simpan</button></div></div>
 <div class="field"><label>Diskon (%)</label><input id="pDiscount" type="number" min="0" max="99" step="1" value="0" placeholder="Contoh: 20"><p class="upload-note">Isi 0 jika tidak ada diskon. Harga setelah diskon dihitung otomatis.</p></div>
 <div class="field"><label>Foto produk</label><label class="file-label" for="pImageFile">＋ Upload foto atau GIF dari perangkat</label><input id="pImageFile" type="file" accept="image/*,.gif" hidden onchange="previewProductImage(this)"><img id="pImagePreview" class="upload-preview" src="https://placehold.co/700x350/e9edf3/66768b?text=Preview+Produk"><p class="upload-note">Mendukung JPG, PNG, WEBP, dan GIF animasi. Maksimal 25 MB.</p></div>
@@ -1916,7 +1919,7 @@ if(file){
  try{const localBlob=await readMedia(imageKey);if(localBlob)image=await uploadSharedMedia(localBlob,'products')}
  catch(e){toast('Gagal memindahkan gambar produk ke penyimpanan online: '+e.message);return}
 }
-let data={name,category:$('#pCategory').value,price,minQty:min,maxQty:max,rating:Math.round(Math.max(0,Math.min(5,Number($('#pRating').value)||0))*10)/10,description:$('#pDesc').value.trim(),image,imageKey,badgeText:$('#pBadgeText').value.trim().slice(0,18),badgeColor:safeBadgeColor($('#pBadgeColor').value),discountPercent:Math.max(0,Math.min(99,Math.round(Number($('#pDiscount').value)||0)))};
+let data={name,category:$('#pCategory').value,price,minQty:min,maxQty:max,rating:Math.round(Math.max(0,Math.min(5,Number($('#pRating').value)||0))*10)/10,description:$('#pDesc').value.trim(),image,imageKey,badgeText:$('#pBadgeText').value.trim().slice(0,18),badgeColor:currentBadgeColor(),discountPercent:Math.max(0,Math.min(99,Math.round(Number($('#pDiscount').value)||0)))};
 if(old){Object.assign(old,data)}
 else{products.unshift({id:Date.now(),...data,sold:0})}
 persist();
@@ -1929,7 +1932,7 @@ let p=products.find(x=>x.id===id);if(!p)return;
 $('#pId').value=p.id;$('#pName').value=p.name;$('#pCategory').value=p.category;$('#pCategoryLabel').textContent=p.category;
 $('#pPrice').value=p.price;$('#pMin').value=p.minQty||1;$('#pMax').value=p.maxQty||99;
 $('#pRating').value=Number(p.rating||0).toFixed(1);$('#pDesc').value=p.description;
-$('#pBadgeText').value=p.badgeText||'';$('#pBadgeColor').value=safeBadgeColor(p.badgeColor);$('#pDiscount').value=Math.max(0,Math.min(99,Number(p.discountPercent)||0));
+$('#pBadgeText').value=p.badgeText||'';$('#pBadgeColor').value=safeBadgeColor(p.badgeColor);$('#pBadgeColorHex').value=safeBadgeColor(p.badgeColor).toUpperCase();$('#pDiscount').value=Math.max(0,Math.min(99,Number(p.discountPercent)||0));
 $('#pImageUrl').value=p.image||'';
 $('#pImagePreview').src=productImage(p);
 $('#pImageFile').value='';
@@ -1937,7 +1940,7 @@ window.scrollTo({top:0,behavior:'smooth'});
 }
 function resetProductForm(){
 ['pId','pName','pPrice','pDesc','pImageUrl','pCategory','pBadgeText'].forEach(id=>$('#'+id).value='');
-$('#pBadgeColor').value='#2563eb';$('#pDiscount').value=0;
+$('#pBadgeColor').value='#2563eb';$('#pBadgeColorHex').value='#2563EB';$('#pDiscount').value=0;
 $('#pCategoryLabel').textContent='Pilih kategori ▾';
 $('#pRating').value=5;$('#pMin').value=1;$('#pMax').value=99;
 $('#pImageFile').value='';$('#pImagePreview').src='https://placehold.co/700x350/e9edf3/66768b?text=Preview+Produk';
