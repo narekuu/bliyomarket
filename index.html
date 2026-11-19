@@ -959,7 +959,7 @@ else{sessionStorage.setItem('bl_user',JSON.stringify(user));localStorage.removeI
 async function register(){
 if(!checkCaptcha())return;
 let name=$('#regName').value.trim(),email=$('#regEmail').value.trim().toLowerCase(),password=$('#regPassword').value;
-if(!name||!email||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email)||password.length<6)return toast('Masukkan nama, email dengan format benar, dan password minimal 6 karakter.');
+if(!name||!email||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)||password.length<6)return toast('Masukkan nama, email dengan format benar, dan password minimal 6 karakter.');
 const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{name},emailRedirectTo:'https://bliyomarket.vercel.app/'}});
 if(error){
  const m=String(error.message||'');
