@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<meta name="theme-color" content="#edf0f5">
+<meta name="theme-color" content="#168bd8">
 <title>BLIYO MARKET</title>
 <link rel="icon" href="https://www.image2url.com/r2/default/files/1795010170495-9c6bcbc0-665b-4557-bc88-6281419aad43.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -278,6 +278,123 @@ body.dark .modal{background:rgba(25,37,53,.82);border-color:rgba(255,255,255,.18
  100%{opacity:0;left:125%}
 }
 @media(prefers-reduced-motion:reduce){.product,.category,.admin-item,.nav-indicator{transition:none!important;animation:none!important}}
+
+
+/* IOS LIQUID GLASS — OCEAN WALLPAPER */
+:root{
+ --bg:#168bd8;
+ --glass:rgba(255,255,255,.105);
+ --glass-strong:rgba(255,255,255,.19);
+ --card:rgba(255,255,255,.115);
+ --text:#fff;
+ --muted:rgba(255,255,255,.78);
+ --line:rgba(255,255,255,.46);
+ --accent:#e4f7ff;
+ --shadow:0 14px 38px rgba(0,45,100,.13),inset 0 1.5px 1px rgba(255,255,255,.42);
+ --blur:0px;
+}
+body{
+ color:var(--text);
+ background:
+  radial-gradient(ellipse at 8% 25%,#b5f3e5 0%,transparent 34%),
+  radial-gradient(ellipse at 90% 15%,#1685ed 0%,transparent 42%),
+  radial-gradient(ellipse at 45% 95%,#a6e8e0 0%,transparent 40%),
+  linear-gradient(135deg,#6cc4dc,#398fd4 48%,#0646a4);
+ background-attachment:fixed;
+}
+body.dark{
+ --bg:#071b35;
+ --glass:rgba(210,235,255,.075);
+ --glass-strong:rgba(210,235,255,.13);
+ --card:rgba(210,235,255,.085);
+ --text:#f7fbff;
+ --muted:rgba(232,244,255,.72);
+ --line:rgba(235,247,255,.23);
+ --accent:#bcecff;
+ --shadow:0 18px 48px rgba(0,8,28,.3),inset 0 1.5px 1px rgba(255,255,255,.16);
+ background:
+  radial-gradient(ellipse at 8% 25%,rgba(36,157,167,.25),transparent 36%),
+  radial-gradient(ellipse at 90% 15%,rgba(20,103,194,.34),transparent 42%),
+  radial-gradient(ellipse at 45% 95%,rgba(37,123,151,.2),transparent 40%),
+  linear-gradient(135deg,#102d4b,#0b2850 48%,#06152e);
+ background-attachment:fixed;
+}
+body:before,body:after{
+ content:"";position:fixed;width:130%;height:75%;border-radius:50%;
+ transform:rotate(-27deg);pointer-events:none;z-index:0;
+ border-top:2px solid rgba(255,255,255,.27);
+ background:linear-gradient(160deg,rgba(255,255,255,.13),transparent 45%,rgba(0,65,180,.1));
+}
+body:before{top:30%;left:-25%}
+body:after{top:55%;left:8%;opacity:.58}
+.app{position:relative;z-index:1}
+.glass,.topbar,.panel,.product,.category,.order,.stat,.admin-item,.banner-wrap,.modal,.toast,.iconbtn,.btn,.admin-tab,.category-option,.upload-preview,.file-label,.bottomnav{
+ background:linear-gradient(135deg,rgba(255,255,255,.19),rgba(255,255,255,.045) 45%,rgba(255,255,255,.105));
+ border:1px solid rgba(255,255,255,.48);
+ box-shadow:inset 0 1.5px 1px rgba(255,255,255,.55),inset 1px 0 1px rgba(255,255,255,.18),inset 0 -1px 1px rgba(255,255,255,.16),0 10px 30px rgba(0,45,100,.08);
+ -webkit-backdrop-filter:none;
+ backdrop-filter:none;
+ color:var(--text);
+}
+body.dark .glass,body.dark .topbar,body.dark .panel,body.dark .product,body.dark .category,body.dark .order,body.dark .stat,body.dark .admin-item,body.dark .banner-wrap,body.dark .modal,body.dark .toast,body.dark .iconbtn,body.dark .btn,body.dark .admin-tab,body.dark .category-option,body.dark .upload-preview,body.dark .file-label,body.dark .bottomnav{
+ background:linear-gradient(135deg,rgba(220,240,255,.14),rgba(190,220,255,.035) 48%,rgba(150,205,255,.075));
+ border-color:rgba(235,247,255,.25);
+ box-shadow:inset 0 1.5px 1px rgba(255,255,255,.2),inset 1px 0 1px rgba(255,255,255,.08),0 14px 36px rgba(0,8,28,.2);
+}
+.topbar,.panel,.product,.category,.order,.stat,.admin-item,.banner-wrap,.modal,.iconbtn,.btn,.admin-tab,.category-option,.file-label{
+ isolation:isolate;overflow:hidden;
+}
+.topbar:before,.panel:before,.product:before,.category:before,.order:before,.stat:before,.admin-item:before,.banner-wrap:before,.modal:before,.iconbtn:before,.btn:before,.admin-tab:before,.category-option:before,.file-label:before{
+ content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+ background:linear-gradient(115deg,rgba(255,255,255,.25),rgba(255,255,255,.07) 20%,transparent 43%,rgba(255,255,255,.04) 75%,rgba(255,255,255,.15));
+}
+.topbar{border-radius:25px}
+.brand,.page-title,.section-head h2,.profile-info h2,.field label,.eyebrow,.muted,.product-info h3,.product-description,.product-meta,.price,.profile-menu,.profile-menu strong,.grow strong,.grow small,.empty,.stat strong,.stat span,.order-detail p,.upload-note{color:var(--text)}
+.muted,.eyebrow,.product-description,.product-meta,.grow small,.stat span,.upload-note{color:var(--muted)}
+.category,.product,.order,.stat,.admin-item,.panel{background:linear-gradient(135deg,rgba(255,255,255,.17),rgba(255,255,255,.055) 48%,rgba(255,255,255,.11))}
+.product{border-radius:23px;box-shadow:0 12px 32px rgba(0,45,100,.11),inset 0 1px 1px rgba(255,255,255,.5)}
+.product-image{background:rgba(255,255,255,.09)}
+.cat-icon,.menu-icon,.order-detail,.quantity button,.modal-close{background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.35);color:#fff;box-shadow:inset 0 1px 1px rgba(255,255,255,.3)}
+.primary,.admin-tab.active{
+ background:linear-gradient(135deg,rgba(255,255,255,.34),rgba(255,255,255,.14));
+ color:#fff;border:1px solid rgba(255,255,255,.55);
+ box-shadow:0 9px 24px rgba(0,45,100,.15),inset 0 1px 1px rgba(255,255,255,.55);
+}
+.primary:after{background:linear-gradient(180deg,rgba(255,255,255,.22),transparent)}
+.btn,.iconbtn,.admin-tab,.category-option,.file-label{color:#fff}
+.field input,.field textarea,.search,.quantity input{
+ color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.42);
+ box-shadow:inset 0 1px 2px rgba(255,255,255,.22),0 5px 16px rgba(0,45,100,.04);
+ -webkit-backdrop-filter:none;backdrop-filter:none;
+}
+body.dark .field input,body.dark .field textarea,body.dark .search,body.dark .quantity input{color:#fff;background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.24)}
+.field input::placeholder,.field textarea::placeholder,.search::placeholder,.quantity input::placeholder{color:rgba(255,255,255,.68)}
+.field input:focus,.field textarea:focus,.search:focus,.quantity input:focus{border-color:rgba(255,255,255,.8);box-shadow:0 0 0 3px rgba(255,255,255,.14),inset 0 1px 2px rgba(255,255,255,.28)}
+.profile-menu{border-bottom-color:rgba(255,255,255,.2)}
+.profile-menu:active{background:rgba(255,255,255,.1)}
+.status{background:rgba(255,213,132,.2);color:#fff2ce;border:1px solid rgba(255,255,255,.18)}
+.status.Selesai{background:rgba(92,224,163,.2);color:#e1fff0}
+.status.Ditolak{background:rgba(255,115,130,.2);color:#ffe5e8}
+.admin-hero{background:linear-gradient(135deg,rgba(255,255,255,.24),rgba(15,85,160,.24));border:1px solid rgba(255,255,255,.4);box-shadow:0 16px 36px rgba(0,45,100,.15),inset 0 1px 1px rgba(255,255,255,.3)}
+.admin-hero .muted{color:rgba(255,255,255,.82)}
+.modal-backdrop{background:rgba(0,35,75,.3);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.modal{background:linear-gradient(135deg,rgba(255,255,255,.28),rgba(255,255,255,.12));color:#fff}
+body.dark .modal{background:linear-gradient(135deg,rgba(30,70,110,.78),rgba(10,30,58,.86));color:#fff}
+.toast{background:rgba(4,48,91,.72);color:#fff;border-color:rgba(255,255,255,.35)}
+.bottomnav{background:linear-gradient(135deg,rgba(255,255,255,.26),rgba(255,255,255,.08) 48%,rgba(255,255,255,.16));border-color:rgba(255,255,255,.58)}
+body.dark .bottomnav{background:linear-gradient(135deg,rgba(180,220,255,.16),rgba(180,220,255,.045));border-color:rgba(255,255,255,.24)}
+.navitem{color:rgba(255,255,255,.72)}
+.navitem.active{color:#fff}
+.nav-indicator{background:linear-gradient(145deg,rgba(255,255,255,.62),rgba(255,255,255,.2) 48%,rgba(190,235,255,.2));border-color:rgba(255,255,255,.72);box-shadow:0 4px 14px rgba(0,45,100,.12),inset 0 1px 1px rgba(255,255,255,.9),inset 0 -1px 2px rgba(110,140,175,.12)}
+body.dark .nav-indicator{background:linear-gradient(145deg,rgba(220,240,255,.3),rgba(150,195,235,.1) 55%,rgba(255,255,255,.07));border-color:rgba(255,255,255,.3)}
+.banner-wrap{border-radius:26px}
+.empty{color:rgba(255,255,255,.82)}
+.search-wrap svg{color:rgba(255,255,255,.75)}
+.danger{color:#ffd3d8}
+@media(max-width:650px){
+ .app{padding-bottom:112px}
+ .topbar{border-radius:22px}
+}
 
 </style>
 </head>
