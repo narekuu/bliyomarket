@@ -550,6 +550,23 @@ body{
 @media(prefers-reduced-motion:reduce){
  .wallpaper *{animation:none!important;transition:none!important}
 }
+/* KUNCI HALAMAN SAAT DRAWER ADMIN TERBUKA */
+html.admin-drawer-open,body.admin-drawer-open{
+ overflow:hidden!important;
+ overscroll-behavior:none!important;
+}
+body.admin-drawer-open{
+ position:fixed!important;
+ inset:0!important;
+ width:100%!important;
+ touch-action:none;
+}
+.admin-drawer{
+ overscroll-behavior:contain;
+ touch-action:pan-y;
+ -webkit-overflow-scrolling:touch;
+}
+.admin-drawer-backdrop{touch-action:none}
 /* DISTINCTIVE ADMIN BURGER SIDEBAR */
 .admin-menu-trigger{display:flex;align-items:center;gap:11px;padding:11px 15px;border:1px solid rgba(255,255,255,.62);border-radius:17px;background:linear-gradient(135deg,rgba(255,255,255,.72),rgba(255,255,255,.28));color:#20364d;box-shadow:0 8px 24px rgba(20,65,110,.13),inset 0 1px 1px #fff;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);font-weight:800}
 .admin-menu-trigger .burger-mark{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#1d9bd5,#3569b5);color:white;box-shadow:0 5px 13px rgba(25,112,177,.28)}
@@ -1614,9 +1631,27 @@ toast('Cadangan Cloudflare selesai. '+summary);
 }catch(error){toast('Cadangan gagal: '+error.message);}
 finally{if(btn){btn.disabled=false;btn.textContent='Cadangkan ke Cloudflare';}}
 }
+let adminDrawerScrollY=0;
 function toggleAdminMenu(force){
-adminMenuOpen=typeof force==='boolean'?force:!adminMenuOpen;
-document.body.classList.toggle('admin-drawer-open',adminMenuOpen);
+const next=typeof force==='boolean'?force:!adminMenuOpen;
+if(next===adminMenuOpen)return;
+adminMenuOpen=next;
+if(adminMenuOpen){
+ adminDrawerScrollY=window.scrollY||window.pageYOffset||0;
+ document.documentElement.classList.add('admin-drawer-open');
+ document.body.classList.add('admin-drawer-open');
+ document.body.style.top=(-adminDrawerScrollY)+'px';
+}else{
+ document.documentElement.classList.remove('admin-drawer-open');
+ document.body.classList.remove('admin-drawer-open');
+ document.body.style.position='';
+ document.body.style.inset='';
+ document.body.style.width='';
+ document.body.style.overflow='';
+ document.body.style.touchAction='';
+ document.body.style.top='';
+ window.scrollTo(0,adminDrawerScrollY);
+}
 }
 function chooseAdminTab(key){
 adminTab=key;toggleAdminMenu(false);render();
