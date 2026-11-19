@@ -565,9 +565,7 @@ body{
  contain:paint!important;
  isolation:isolate;
 }
-.wallpaper .wave,
-.wallpaper .wave.one,
-.wallpaper .wave.two,
+.wallpaper .wave{display:none!important}
 .wallpaper .light{
  animation:none!important;
  transition:none!important;
@@ -599,7 +597,9 @@ body.admin-drawer-open{overflow:hidden!important}
 .admin-menu-trigger .burger-mark{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#1d9bd5,#3569b5);color:white;box-shadow:0 5px 13px rgba(25,112,177,.28)}
 .admin-menu-trigger svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
 .admin-menu-trigger small{display:block;font-size:9px;font-weight:600;opacity:.62;text-align:left;margin-top:2px}
-.admin-drawer-backdrop{position:fixed;inset:0;z-index:90;background:rgba(8,23,42,.34);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .28s}
+.admin-drawer-backdrop{position:fixed;inset:0;z-index:90;background:rgba(8,23,42,.28);backdrop-filter:none;-webkit-backdrop-filter:none;opacity:0;pointer-events:none;transition:opacity .2s}
+.admin-page{animation:none!important}
+.admin-drawer{backdrop-filter:blur(12px) saturate(130%)!important;-webkit-backdrop-filter:blur(12px) saturate(130%)!important;transition:transform .24s cubic-bezier(.2,.85,.2,1)!important}
 .admin-drawer{position:fixed;z-index:91;left:12px;top:12px;bottom:12px;width:min(310px,calc(100vw - 42px));padding:17px;border-radius:28px;overflow:auto;color:#20364d;background:linear-gradient(155deg,rgba(248,253,255,.94),rgba(216,239,249,.86) 48%,rgba(237,232,255,.9));border:1px solid rgba(255,255,255,.88);box-shadow:0 28px 80px rgba(4,28,55,.3),inset 0 1px 1px #fff;backdrop-filter:blur(32px) saturate(160%);-webkit-backdrop-filter:blur(32px) saturate(160%);transform:translateX(calc(-100% - 24px)) scale(.97);transition:transform .38s cubic-bezier(.2,.85,.2,1)}
 .admin-drawer-open .admin-drawer-backdrop{opacity:1;pointer-events:auto}
 .admin-drawer-open .admin-drawer{transform:translateX(0) scale(1)}
@@ -1689,7 +1689,9 @@ if(adminMenuOpen){
 }
 }
 function chooseAdminTab(key){
-adminTab=key;toggleAdminMenu(false);render();
+adminTab=key;
+toggleAdminMenu(false);
+render({instant:true});
 }
 function adminHeader(){
 return `<div class="admin-heading row" style="margin-bottom:20px;flex-wrap:wrap;align-items:center"><div><div class="eyebrow">BLIYO MANAGEMENT SYSTEM</div><h1 style="font-size:27px;margin-top:7px">Dashboard Admin</h1><p class="muted">Kelola toko digital BLIYO MARKET.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="admin-menu-trigger" onclick="toggleAdminMenu()" aria-label="Buka menu admin"><span class="burger-mark"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span>MENU ADMIN<small>Navigasi panel</small></span></button>${user?.id===ADMIN_UID?'<button class="btn" id="backupBtn" onclick="runBackup()">Cadangkan ke Cloudflare</button>':''}<button class="btn" onclick="navigate('profile')">Profil ↗</button></div></div>`;
@@ -1698,7 +1700,7 @@ function renderAdmin(){
 const isOwner=user?.id===ADMIN_UID;
 if(!isOwner&&['sync','users','admins','settings'].includes(adminTab))adminTab='overview';
 const items=[['overview','Ringkasan','<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'],...(isOwner?[['sync','Sinkronisasi','<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.8-2L20 12M4 12l2.6 5a7 7 0 0 0 11.8-2"/>']]:[]),['products','Produk','<path d="M3 7h18l-2 14H5L3 7Z"/><path d="M8 7a4 4 0 0 1 8 0"/>'],['categories','Kategori','<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>'],['banners','Banner','<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/>'],['orders','Pesanan','<path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/>'],...(isOwner?[['users','Pengguna','<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/>'],['admins','Manajemen Admin','<path d="M12 3 4 6v5c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-3Z"/><path d="m9 12 2 2 4-4"/>'],['settings','Pengaturan','<circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.4-2.4L7.5 15a8 8 0 0 1 0-1.9L6.1 12l1.4-2.4 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.9Z"/>']]:[])];
-return `<section class="fade">${adminHeader()}
+return `<section class="admin-page">${adminHeader()}
 <div class="admin-drawer-backdrop" onclick="toggleAdminMenu(false)"></div>
 <aside class="admin-drawer" aria-label="Menu navigasi admin">
 <div class="admin-drawer-head"><button class="admin-drawer-close" onclick="toggleAdminMenu(false)" aria-label="Tutup menu">×</button><strong>BLIYO <span style="font-weight:400">CONTROL</span></strong><small>Management console · ${isOwner?'OWNER ACCESS':'ADMIN ACCESS'}</small></div>
@@ -1947,8 +1949,10 @@ function maintenancePage(){
  const message=siteControl.maintenance_message||'BLIYO MARKET sedang dalam pemeliharaan. Silakan kembali beberapa saat lagi.';
  return `<section class="fade" style="min-height:72vh;display:grid;place-items:center"><div class="panel" style="width:min(560px,100%);padding:30px 22px;text-align:center"><div style="width:76px;height:76px;border-radius:25px;background:var(--glass-strong);display:grid;place-items:center;margin:0 auto 20px;color:var(--accent)"><svg viewBox="0 0 24 24" style="width:38px;height:38px"><path d="M14.7 6.3a5 5 0 0 0-6.9 6.9L3 18l3 3 4.8-4.8a5 5 0 0 0 6.9-6.9l-3 3-3-3 3-3z"/><path d="m14 10 3 3"/></svg></div><div class="eyebrow">BLIYO MARKET</div><h1 style="font-size:27px;margin-top:10px">Sedang Dalam Maintenance</h1><p class="muted" style="font-size:13px;margin:12px auto 0;max-width:410px">${esc(message)}</p><div class="status" style="display:inline-block;margin-top:20px">Situs sementara tidak tersedia</div><p class="muted" style="margin-top:17px">Halaman akan diperbarui otomatis setelah maintenance selesai.</p>${user?'<button class="btn" style="margin-top:18px" onclick="logout()">Keluar akun</button>':'<button class="primary" style="margin-top:18px" onclick="navigate(\'login\')">Login Admin</button>'}</div></section>`;
 }
-function render(){
+function render(options={}){
 clearInterval(bannerTimer);clearTimeout(bannerTransitionTimer);
+/* Drawer lama sudah dipindah ke body, jadi wajib dibersihkan sebelum render ulang. */
+document.querySelectorAll('body > .admin-drawer,body > .admin-drawer-backdrop').forEach(el=>el.remove());
 const blocked=!!siteControl.maintenance_enabled&&user?.role!=='admin'&&current!=='login';
 let isAdmin=current==='admin'||blocked;
 $('#bottomNav').classList.toggle('hidden',isAdmin);
@@ -1964,7 +1968,13 @@ if(current==='admin'&&!blocked){
  if(drawer)document.body.appendChild(drawer);
 }
 $('#view').setAttribute('aria-busy','false');
-$('#view').classList.remove('page-exit','page-enter');void $('#view').offsetWidth;$('#view').classList.add('page-enter');
+$('#view').classList.remove('page-exit','page-enter');
+if(options.instant){
+ $('#view').style.animation='none';
+}else{
+ $('#view').style.animation='';
+ $('#view').classList.add('page-enter');
+}
 if(current==='home')startBanners();
 if(current==='admin'&&adminTab==='sync')loadCloudflareSyncStatus();
 if(current==='login'||current==='register')newCaptcha();
