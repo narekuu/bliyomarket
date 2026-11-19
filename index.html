@@ -1228,10 +1228,10 @@ function makeOrderId(){let id;do{id='BYO'+String(Math.floor(100000+Math.random()
 function openBuy(id){
 selectedProduct=products.find(p=>p.id===id);if(!selectedProduct)return;
 if(!user){toast('Login dahulu sebelum memesan.');navigate('login');return}
-let p=selectedProduct,min=Math.max(1,Number(p.minQty)||1),max=Math.max(min,Number(p.maxQty)||99);
+let p=selectedProduct,min=Math.max(1,Number(p.minQty)||1),max=Math.max(min,Number(p.maxQty)||99),orderImage=(p?.imageKey&&mediaURL(p.imageKey))||p?.image||'';
 $('#modalRoot').innerHTML=`<div class="modal-backdrop order-modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal order-modal">
 <div class="row"><div><div class="eyebrow">DETAIL PEMESANAN</div><h2 style="margin-top:5px">Konfirmasi produk</h2></div><button class="modal-close" onclick="closeModal()">✕</button></div>
-<img class="modal-image" src="${esc(productImage(p))}">
+${orderImage?`<img class="modal-image" src="${esc(orderImage)}" onerror="this.remove()">`:``}
 <h2 style="font-size:19px">${esc(p.name)}</h2>
 <p class="modal-description" style="margin-top:7px">${esc(p.description)}</p>
 <div class="row" style="margin-top:15px"><span class="muted">Harga satuan</span><strong>${money(p.price)}</strong></div>
